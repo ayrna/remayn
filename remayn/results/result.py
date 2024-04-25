@@ -50,12 +50,29 @@ class Result:
             exact path of the ResultFile inside the base_path directory (results_path).
             It also contains the md5sum of the file to check if it has been modified
             (results_md5sum).
+
+        Raises
+        ------
+        ValueError
+            If the experiment_info dictionary does not contain the 'results_path' key.
+        ValueError
+            If the experiment_info dictionary does not contain the 'results_md5sum' key.
         """
 
         self.base_path = base_path
         self.experiment_info_ = experiment_info
         self.result_ = None
         self.load_time_ = None
+
+        if "results_path" not in experiment_info:
+            raise ValueError(
+                "The experiment_info dictionary must contain the 'results_path' key."
+            )
+
+        if "results_md5sum" not in experiment_info:
+            raise ValueError(
+                "The experiment_info dictionary must contain the 'results_md5sum' key."
+            )
 
     def __str__(self):
         s = f"Config: {json.dumps(self.get_config(), indent=4)}"
