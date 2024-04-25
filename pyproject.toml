@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "toml", "build"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remayn"
+version = "0.1.0"
+authors = [
+    {name = "Víctor Manuel Vargas", email = "vvargas@uco.es"},
+]
+description = "REsults MAde easY in pythoN"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    
+]
+
+[project.urls]
+Source = "https://github.com/ayrna/remayn"
+Documentation = "https://remayn.readthedocs.io/en/latest/"
+
+[project.optional-dependencies]
+dev = ["pytest", "pre-commit"]
+docs = ["sphinx", "sphinxcontrib-bibtex", "sphinx-rtd-theme"]
+
+[tool.setuptools.packages.find]
+include = ["remayn", "remayn.*"]
+exclude = ["*.tests"]
+namespaces = false
+
+[tool.ruff]
+fix = true
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+experimental-string-processing = true
