@@ -17,23 +17,23 @@ class ResultFile:
         Numpy array of target values for the test set.
     predictions: np.ndarray
         Numpy array of predicted values for the test set.
-    train_targets: Optional[np.ndarray]
+    train_targets: Optional[np.ndarray], optional, default=None
         Numpy array of target values for the training set.
-    train_predictions: Optional[np.ndarray]
+    train_predictions: Optional[np.ndarray], optional, default=None
         Numpy array of predicted values for the training set.
-    val_targets: Optional[np.ndarray]
+    val_targets: Optional[np.ndarray], optional, default=None
         Numpy array of target values for the validation set.
-    val_predictions: Optional[np.ndarray]
+    val_predictions: Optional[np.ndarray], optional, default=None
         Numpy array of predicted values for the validation set.
-    time: float
+    time: float, optional, default=None
         Time taken to run the experiment.
-    train_history: Optional[np.ndarray]
+    train_history: Optional[np.ndarray], optional, default=None
         Training history of the model, represented as the value of the error on each
         iteration.
-    val_history: Optional[np.ndarray]
+    val_history: Optional[np.ndarray], optional, default=None
         Validation history of the model, represented as the value of the error on each
         iteration.
-    best_params: Optional[dict]
+    best_params: Optional[dict], optional, default=None
         Dictionary of the best parameters found during the experiment.
         Can be used in case that the experiment employes a cross-validation process.
     """

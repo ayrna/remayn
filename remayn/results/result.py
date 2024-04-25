@@ -111,7 +111,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
         Parameters
         ----------
-        force: bool
+        force: bool, optional, default=False
             If True, the file will be loaded even if it was already loaded.
 
         Raises
@@ -178,8 +178,9 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
         Parameters
         ----------
-        force_reload: bool
-            If True, the file will be loaded even if it was already loaded.
+        force_reload: bool, optional, default=False
+            If True, the ResultFile will be reloaded even if it was already loaded.
+            If False, it will only load the ResultFile when it has not been loaded yet.
 
         Returns
         -------
