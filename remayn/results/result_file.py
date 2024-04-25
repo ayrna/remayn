@@ -1,3 +1,8 @@
+from typing import Optional
+
+import numpy as np
+
+
 class ResultFile:
     """Stores the results of a experiment.
     ResultFile objects only contain data and are usually stored as pickle files.
@@ -12,42 +17,42 @@ class ResultFile:
         Numpy array of target values for the test set.
     predictions: np.ndarray
         Numpy array of predicted values for the test set.
-    train_targets: np.ndarray
+    train_targets: Optional[np.ndarray]
         Numpy array of target values for the training set.
-    train_predictions: np.ndarray
+    train_predictions: Optional[np.ndarray]
         Numpy array of predicted values for the training set.
-    val_targets: np.ndarray
+    val_targets: Optional[np.ndarray]
         Numpy array of target values for the validation set.
-    val_predictions: np.ndarray
+    val_predictions: Optional[np.ndarray]
         Numpy array of predicted values for the validation set.
     time: float
         Time taken to run the experiment.
-    train_history: np.ndarray
+    train_history: Optional[np.ndarray]
         Training history of the model, represented as the value of the error on each
         iteration.
-    val_history: np.ndarray
+    val_history: Optional[np.ndarray]
         Validation history of the model, represented as the value of the error on each
         iteration.
-    best_params: dict
+    best_params: Optional[dict]
         Dictionary of the best parameters found during the experiment.
         Can be used in case that the experiment employes a cross-validation process.
     """
 
     def __init__(
         self,
-        name,
+        name: str,
         *,
-        config,
-        targets,
-        predictions,
-        train_targets=None,
-        train_predictions=None,
-        val_targets=None,
-        val_predictions=None,
-        time=None,
-        train_history=None,
-        val_history=None,
-        best_params=None,
+        config: dict,
+        targets: np.ndarray,
+        predictions: np.ndarray,
+        train_targets: Optional[np.ndarray] = None,
+        train_predictions: Optional[np.ndarray] = None,
+        val_targets: Optional[np.ndarray] = None,
+        val_predictions: Optional[np.ndarray] = None,
+        time: Optional[float] = None,
+        train_history: Optional[np.ndarray] = None,
+        val_history: Optional[np.ndarray] = None,
+        best_params: Optional[dict] = None,
     ):
         self.name = name
         self.config = config
