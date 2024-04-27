@@ -36,8 +36,8 @@ namespaces = false
 
 [tool.ruff]
 fix = true
+line-length = 88
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
-experimental-string-processing = true
+target-version = ['py311']

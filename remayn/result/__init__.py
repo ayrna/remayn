@@ -1,5 +1,5 @@
 from .result import Result
-from .result_file import ResultFile
+from .result_data import ResultFile
 
 __all__ = [
     "Result",

@@ -6,14 +6,14 @@ from hashlib import md5
 from pathlib import Path
 from typing import Optional
 
-from .result_file import ResultFile
+from .result_data import ResultData
 
 
 class Result:
     """Manages the result of a experiment.
-    It contains the path where the experiment ResultFile is stored, along with the
+    It contains the path where the experiment ResultData is stored, along with the
     experiment information.
-    The ResultFile is only loaded when needed to save memory and time.
+    The ResultData is only loaded when needed to save memory and time.
 
     Attributes
     ----------
@@ -21,25 +21,25 @@ class Result:
         Base path where all the experiments are stored.
     experiment_info_: dict
         Dictionary containing information about the experiment. It includes the
-        exact path of the ResultFile inside the base_path directory (results_path).
+        exact path of the ResultData inside the base_path directory (results_path).
         It also contains the md5sum of the file to check if it has been modified
         (results_md5sum).
-    result_: Optional[ResultFile]
-        Contains the ResultFile when loaded or None if it was not loaded yet.
+    result_: Optional[ResultData]
+        Contains the ResultData when loaded or None if it was not loaded yet.
         This attribute should not be accessed directly. Use get_result() instead to
-        make sure that the ResultFile is properly loaded before accessing it.
+        make sure that the ResultData is properly loaded before accessing it.
     load_time_: Optional[float]
-        Time taken to load the ResultFile. It is None if the file was not loaded yet.
+        Time taken to load the ResultData. It is None if the file was not loaded yet.
     """
 
     base_path: str
     experiment_info_: dict
-    result_: Optional[ResultFile]
+    result_: Optional[ResultData]
     load_time_: Optional[float]
 
     def __init__(self, base_path: str, experiment_info: dict):
         """Initializes the Result object.
-        By default, it does not load the whole ResultFile.
+        By default, it does not load the whole ResultData.
 
         Parameters
         ----------
@@ -47,7 +47,7 @@ class Result:
             Base path where all the experiments are stored.
         experiment_info: dict
             Dictionary containing information about the experiment. It should contain the
-            exact path of the ResultFile inside the base_path directory (results_path).
+            exact path of the ResultData inside the base_path directory (results_path).
             It also contains the md5sum of the file to check if it has been modified
             (results_md5sum).
 
@@ -101,10 +101,10 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         return self.__str__()
 
     def load(self, force=False):
-        """Load the ResultFile from the disk.
-        This method reads the ResultFile from the disk and stores it in the result_
+        """Load the ResultData from the disk.
+        This method reads the ResultData from the disk and stores it in the result_
         attribute. It also checks the integrity of the pickle file using the md5sum.
-        This method is called automatically by get_result() when the ResultFile is
+        This method is called automatically by get_result() when the ResultData is
         needed. However, you can call it manually to force the loading of the file.
         If the file was already loaded, this method does nothing, unless force=True is
         passed as an argument.
@@ -117,7 +117,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         Raises
         ------
         FileNotFoundError
-            If the ResultFile does not exist.
+            If the ResultData does not exist.
         ValueError
             If the md5sum of the file does not match the one stored in the experiment
             information.
@@ -130,7 +130,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
         if not results_path.exists():
             raise FileNotFoundError(
-                f"ResultFile {results_path} does not exist."
+                f"ResultData {results_path} does not exist."
                 " The experiment is incomplete!"
             )
 
@@ -143,7 +143,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
         if md5sum != self.experiment_info_["results_md5sum"]:
             raise ValueError(
-                f"ResultFile {results_path} integrity check failed."
+                f"ResultData {results_path} integrity check failed."
                 " The file may have been modified after the experiment."
             )
 
@@ -165,27 +165,27 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         else:
             warnings.warn(
                 "'config' not found in experiment_info_ dictionary."
-                "Storing the experiment config in the ResultFile is deprecated"
+                "Storing the experiment config in the ResultData is deprecated"
                 " and will be removed in future versions."
             )
-            return self.get_result().config
+            return self.get_data().config
 
-    def get_result(self, force_reload=False):
-        """Gets the ResultFile of the experiment. If it was not loaded yet, it loads it
+    def get_data(self, force_reload=False):
+        """Gets the ResultData of the experiment. If it was not loaded yet, it loads it
         from the disk. If the file was already loaded, it returns the stored object.
-        This method should be used to access the ResultFile instead of accessing the
+        This method should be used to access the ResultData instead of accessing the
         result_ attribute directly.
 
         Parameters
         ----------
         force_reload: bool, optional, default=False
-            If True, the ResultFile will be reloaded even if it was already loaded.
-            If False, it will only load the ResultFile when it has not been loaded yet.
+            If True, the ResultData will be reloaded even if it was already loaded.
+            If False, it will only load the ResultData when it has not been loaded yet.
 
         Returns
         -------
-        ResultFile
-            The ResultFile object containing the results of the experiment.
+        ResultData
+            The ResultData object containing the results of the experiment.
         """
 
         if self.result_ is None or force_reload:
@@ -193,7 +193,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
         if self.result_ is None:
             raise FileNotFoundError(
-                "ResultFile could not be loaded. Make sure that the base_path is"
+                "ResultData could not be loaded. Make sure that the base_path is"
                 " correct and the 'result_path' value in experiment_info_  dict is"
                 " correct."
             )

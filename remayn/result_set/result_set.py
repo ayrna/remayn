@@ -32,10 +32,27 @@ class ResultSet:
         return self.__str__()
 
     def load(self):
+        """Loads the experiment info of all the results from the `base_path` directory.
+        Only the metadata of the experiments is loaded, while the predictions and targets
+        are not loaded until needed.
+
+        It retrieves all the json files from `base_path`. Also, it checks that each
+        json file has a corresponding pkl file. If the number of json files does not
+        match the number of pkl files, a ValueError is raised. If a json file cannot be
+        loaded, a warning is issued and the file is skipped.
+
+        """
+
         json_files = list(self.base_path.rglob("*.json"))
         pkl_files = list(self.base_path.rglob("*.pkl"))
 
+        # Check that all the json files have its corresponding pkl file
         if len(json_files) != len(pkl_files):
+            for json_file in json_files:
+                if json_file.with_suffix(".pkl") not in pkl_files:
+                    raise ValueError(
+                        f"Could not find pkl file for json file {json_file}",
+                    )
             raise ValueError(
                 f"Number of json files ({len(json_files)}) does not match"
                 f" number of pkl files ({len(pkl_files)})",
@@ -118,7 +135,7 @@ class ResultSet:
         ----------
         config_columns : list of str, optional, default=[]
             List of columns from the config to include in the dataframe.
-        filter_fn : Callable[[ResultsFile], bool], optional, default=lambda result: True
+        filter_fn : Callable[[ResultData], bool], optional, default=lambda result: True
             Function to filter the results to include in the dataframe. If it returns
             True, the result row will be included. The function receives a single
             parameter which is the Result object being processed. It must return a
@@ -128,9 +145,9 @@ class ResultSet:
             It receives two numpy arrays, the targets and the predictions, and returns a
             dictionary where the key is the name of the metric and the value is the value
             of the metric. The shape of the numpy arrays depend on the kind of data that
-            is stored within the ResultFile. While any shape can be valid, the
+            is stored within the ResultData. While any shape can be valid, the
             implementation of the metrics function must be coherent with the data stored
-            in the ResultFile.
+            in the ResultData.
         include_train : bool, optional, default=False
             Whether to include the metrics computed on the train set.
         include_val : bool, optional, default=False
@@ -231,8 +248,8 @@ class ResultSet:
 
         return pd.DataFrame(data)
 
-    def get_experiment(self, idx) -> Result:
-        """Obtains the experiment at the given index.
+    def get_result(self, idx: int) -> Result:
+        """Gets the `Result` object associated with the experiment at the given index.
 
         Parameters
         ----------
@@ -241,17 +258,22 @@ class ResultSet:
 
         Returns
         -------
-        result : ResultsFile or None
-            The experiment at the given index. If the index is out of bounds, returns None.
+        result : `Result` or None
+            The `Result` object of the experiment at the given index.
+            If the index is out of bounds, returns None.
 
+        Raises
+        ------
+        IndexError
+            If the index is out of bounds.
         """
 
         if idx < 0 or idx >= len(self.results):
             raise IndexError(f"Index {idx} out of bounds")
         return self.results[idx]
 
-    def find_experiment(self, config, deep=False):
-        """Find the first experiment with the given config.
+    def find_result(self, config, deep=False):
+        """Find the first result with the given config.
 
         Parameters
         ----------
@@ -264,7 +286,7 @@ class ResultSet:
 
         Returns
         -------
-        result : ResultsFile or None
+        result : ResultData or None
             The first result with the given config, or None if not found.
 
         """
@@ -272,6 +294,9 @@ class ResultSet:
         safe_config = sanitize_json(config)
         config_json = json.dumps(safe_config, indent=4)
         config_from_json = json.loads(config_json)
+
+        def _number_format_fn(x, significant_digits, number_format_notation):
+            return str(round(x, significant_digits))
 
         if deep:
             try:
@@ -285,9 +310,7 @@ class ResultSet:
                         ignore_order=True,
                         ignore_numeric_type_changes=True,
                         significant_digits=6,
-                        number_to_string_func=lambda x,
-                        significant_digits,
-                        number_format_notation: str(round(x, significant_digits)),
+                        number_to_string_func=_number_format_fn,
                     )
                     if diff == {}:
                         return result

@@ -48,15 +48,14 @@ def get_metric_columns_values(
 def get_row_from_result(
     result: Result,
     config_columns: list[str] = [],
-    metrics_fn: Callable[[np.ndarray, np.ndarray], dict[str, float]] = lambda targets,
-    predictions: {},
+    metrics_fn=lambda targets, predictions: {},
     include_train: bool = False,
     include_val: bool = False,
     best_params_columns: list[str] = [],
 ):
-    targets = result.get_result().targets
-    predictions = result.get_result().predictions
-    time = result.get_result().time
+    targets = result.get_data().targets
+    predictions = result.get_data().predictions
+    time = result.get_data().time
 
     test_metrics = metrics_fn(targets, predictions)
 
@@ -67,7 +66,7 @@ def get_row_from_result(
             for column in config_columns
         },
         **{
-            column: get_deep_item_from_dict(result.get_result().best_params, column)
+            column: get_deep_item_from_dict(result.get_data().best_params, column)
             for column in best_params_columns
         },
         **test_metrics,
@@ -75,8 +74,8 @@ def get_row_from_result(
 
     if include_train:
         train_metrics_row = get_metric_columns_values(
-            result.get_result().train_targets,
-            result.get_result().train_predictions,
+            result.get_data().train_targets,
+            result.get_data().train_predictions,
             "train_",
             metrics_fn,
         )
@@ -84,8 +83,8 @@ def get_row_from_result(
 
     if include_val:
         val_metrics_row = get_metric_columns_values(
-            result.get_result().val_targets,
-            result.get_result().val_predictions,
+            result.get_data().val_targets,
+            result.get_data().val_predictions,
             "val_",
             metrics_fn,
         )
@@ -94,12 +93,12 @@ def get_row_from_result(
     row["time"] = time
 
     # Add best epoch and loss value if histories are available
-    if result.get_result().train_history is not None:
-        row["best_train_epoch"] = result.get_result().train_history.argmin() + 1
-        row["best_train_loss"] = result.get_result().train_history.min()
+    if result.get_data().train_history is not None:
+        row["best_train_epoch"] = result.get_data().train_history.argmin() + 1
+        row["best_train_loss"] = result.get_data().train_history.min()
 
-    if result.get_result().val_history is not None:
-        row["best_val_epoch"] = result.get_result().val_history.argmin() + 1
-        row["best_val_loss"] = result.get_result().val_history.min()
+    if result.get_data().val_history is not None:
+        row["best_val_epoch"] = result.get_data().val_history.argmin() + 1
+        row["best_val_loss"] = result.get_data().val_history.min()
 
     return row

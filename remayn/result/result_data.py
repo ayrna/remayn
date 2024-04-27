@@ -3,9 +3,9 @@ from typing import Optional
 import numpy as np
 
 
-class ResultFile:
+class ResultData:
     """Stores the results of a experiment.
-    ResultFile objects only contain data and are usually stored as pickle files.
+    ResultData objects only contain data and are usually stored as pickle files.
 
     Attributes
     ----------
