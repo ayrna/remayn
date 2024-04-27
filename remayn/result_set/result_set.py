@@ -12,71 +12,22 @@ from ..utils import sanitize_json
 from .utils import get_row_from_result
 
 
-class ResultSet:
-    base_path: Path
-    results: list[Result]
+class BaseResultSet:
+    results_: list[Result]
 
-    def __init__(self, base_path):
-        self.base_path = Path(base_path)
-        self.results = []
-
-        self.load()
+    def __init__(self, results):
+        self.results_ = results
 
     def __str__(self):
         return (
             "ResultSet with"
-            f" {len(self.results)} result{'s' if len(self.results) > 1 else ''}"
+            f" {len(self.results_)} result{'s' if len(self.results_) > 1 else ''}"
         )
 
     def __repr__(self):
         return self.__str__()
 
-    def load(self):
-        """Loads the experiment info of all the results from the `base_path` directory.
-        Only the metadata of the experiments is loaded, while the predictions and targets
-        are not loaded until needed.
-
-        It retrieves all the json files from `base_path`. Also, it checks that each
-        json file has a corresponding pkl file. If the number of json files does not
-        match the number of pkl files, a ValueError is raised. If a json file cannot be
-        loaded, a warning is issued and the file is skipped.
-
-        """
-
-        json_files = list(self.base_path.rglob("*.json"))
-        pkl_files = list(self.base_path.rglob("*.pkl"))
-
-        # Check that all the json files have its corresponding pkl file
-        if len(json_files) != len(pkl_files):
-            for json_file in json_files:
-                if json_file.with_suffix(".pkl") not in pkl_files:
-                    raise ValueError(
-                        f"Could not find pkl file for json file {json_file}",
-                    )
-            raise ValueError(
-                f"Number of json files ({len(json_files)}) does not match"
-                f" number of pkl files ({len(pkl_files)})",
-            )
-
-        for path in json_files:
-            try:
-                with open(path, "r") as f:
-                    experiment_info = json.load(f)
-            except json.JSONDecodeError:
-                warnings.warn(
-                    f"Could not load json file {path}. Skipping this file.",
-                    RuntimeWarning,
-                )
-            except FileNotFoundError:
-                warnings.warn(
-                    f"Could not find json file {path}. Skipping this file.",
-                    RuntimeWarning,
-                )
-
-            result = Result(self.base_path, experiment_info)
-            self.results.append(result)
-
-    def filter(self, config={}):
+    def filter(self, config: dict[str, any] = {}) -> "BaseResultSet":
         """Filters the results by config.
 
         Parameters
@@ -89,8 +40,9 @@ class ResultSet:
             additional fields not listed in the provided config dictionary.
         Returns
         -------
-        results : ResultSet
-            The filtered results.
+        results : CustomResultSet
+            A `CustomResultSet` that contains only the results that match the given
+            config.
         """
 
         safe_config = sanitize_json(config)
@@ -98,7 +50,7 @@ class ResultSet:
         config_from_json = json.loads(config_json)
 
         filtered_results = []
-        for result in self.results:
+        for result in self.results_:
             config = result.get_config()
             matches = True
             for k, v in config_from_json.items():
@@ -109,7 +61,7 @@ class ResultSet:
             if matches:
                 filtered_results.append(result)
 
-        return CustomResultSet(filtered_results)
+        return BaseResultSet(filtered_results)
 
     def create_dataframe(
         self,
@@ -211,7 +163,7 @@ class ResultSet:
                     include_val,
                     best_params_columns,
                 )
-                for result in self.results
+                for result in self.results_
                 if filter_fn(result)
             ]
 
@@ -226,7 +178,7 @@ class ResultSet:
                     or []
                 )
         else:
-            for result in self.results:
+            for result in self.results_:
                 if filter_fn(result):
                     data.append(
                         get_row_from_result(
@@ -248,7 +200,7 @@ class ResultSet:
 
         return pd.DataFrame(data)
 
-    def get_result(self, idx: int) -> Result:
+    def get(self, idx: int) -> Result:
         """Gets the `Result` object associated with the experiment at the given index.
 
         Parameters
@@ -268,11 +220,11 @@ class ResultSet:
             If the index is out of bounds.
         """
 
-        if idx < 0 or idx >= len(self.results):
+        if idx < 0 or idx >= len(self.results_):
             raise IndexError(f"Index {idx} out of bounds")
-        return self.results[idx]
+        return self.results_[idx]
 
-    def find_result(self, config, deep=False):
+    def find(self, config, deep=False) -> Result:
         """Find the first result with the given config.
 
         Parameters
@@ -286,8 +238,8 @@ class ResultSet:
 
         Returns
         -------
-        result : ResultData or None
-            The first result with the given config, or None if not found.
+        result : `Result` or None
+            The first `Result` with the given config, or None if not found.
 
         """
 
@@ -302,7 +254,7 @@ class ResultSet:
             try:
                 from deepdiff import DeepDiff
 
-                for result in self.results:
+                for result in self.results_:
                     diff = DeepDiff(
                         result.get_config(),
                         config_from_json,
@@ -319,24 +271,75 @@ class ResultSet:
                     "deepdiff is required to use deep comparison of configs"
                 )
         else:
-            for result in self.results:
+            for result in self.results_:
                 if result.get_config() == config_from_json:
                     return result
         return None
 
     def __iter__(self):
-        return iter(self.results)
+        return iter(self.results_)
 
     def __len__(self):
-        return len(self.results)
+        return len(self.results_)
 
     def __getitem__(self, idx):
-        return self.results[idx]
-
-
-class CustomResultSet(ResultSet):
-    def __init__(self, results):
-        self.results = results
+        return self.results_[idx]
 
     def load(self):
-        raise NotImplementedError("CustomResultSet does not support load")
+        raise NotImplementedError("BaseResultSet does not implement load method.")
+
+
+class ResultSet(BaseResultSet):
+    base_path: Path
+    results_: list[Result]
+
+    def __init__(self, base_path):
+        self.base_path = Path(base_path)
+        self.results_ = []
+
+        self.load()
+
+    def load(self):
+        """Loads the experiment info of all the results from the `base_path` directory.
+        Only the metadata of the experiments is loaded, while the predictions and targets
+        are not loaded until needed.
+
+        It retrieves all the json files from `base_path`. Also, it checks that each
+        json file has a corresponding pkl file. If the number of json files does not
+        match the number of pkl files, a ValueError is raised. If a json file cannot be
+        loaded, a warning is issued and the file is skipped.
+
+        """
+
+        json_files = list(self.base_path.rglob("*.json"))
+        pkl_files = list(self.base_path.rglob("*.pkl"))
+
+        # Check that all the json files have its corresponding pkl file
+        if len(json_files) != len(pkl_files):
+            for json_file in json_files:
+                if json_file.with_suffix(".pkl") not in pkl_files:
+                    raise ValueError(
+                        f"Could not find pkl file for json file {json_file}",
+                    )
+            raise ValueError(
+                f"Number of json files ({len(json_files)}) does not match"
+                f" number of pkl files ({len(pkl_files)})",
+            )
+
+        for path in json_files:
+            try:
+                with open(path, "r") as f:
+                    experiment_info = json.load(f)
+            except json.JSONDecodeError:
+                warnings.warn(
+                    f"Could not load json file {path}. Skipping this file.",
+                    RuntimeWarning,
+                )
+            except FileNotFoundError:
+                warnings.warn(
+                    f"Could not find json file {path}. Skipping this file.",
+                    RuntimeWarning,
+                )
+
+            result = Result(self.base_path, experiment_info)
+            self.results_.append(result)

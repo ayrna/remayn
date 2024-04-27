@@ -11,7 +11,7 @@ def get_metric_columns_values(
     predictions: np.ndarray,
     prefix: str,
     metrics_fn: Callable[[np.ndarray, np.ndarray], dict[str, float]],
-):
+) -> dict[str, float]:
     """Creates the row with the metrics values for the given targets and predictions.
     The name of each column is determined by appending the name of the metric to the
     given prefix. For example, if adding the training metrics, the prefix could be
@@ -31,7 +31,7 @@ def get_metric_columns_values(
 
     Returns
     -------
-    row : dict
+    row : dict[str, float]
         The row with the metrics values. The keys represent the name of the columns and
         the values are the metrics values.
     """
@@ -52,7 +52,38 @@ def get_row_from_result(
     include_train: bool = False,
     include_val: bool = False,
     best_params_columns: list[str] = [],
-):
+) -> dict[str, float]:
+    """Create a row with the information of a `Result`, which can be included in the
+    pandas DataFrame of a `ResultSet`. The row contains the configuration columns
+    provided, the best parameters columns provided, the test metrics, and optionally the
+    training and validation metrics.
+
+    A list containing several dictionaries returned by this function, can be used to
+    create a pandas DataFrame with the information of several `Result` objects.
+
+    Parameters
+    ----------
+    result : Result
+        The `Result` object.
+    config_columns : list[str], default=[]
+        The names of the columns to include from the configuration.
+    metrics_fn : Callable[[np.ndarray, np.ndarray], dict[str, float]],
+                default=lambda targets, predictions: {}
+        See `ResultSet.get_dataframe` for more details.
+    include_train : bool, default=False
+        Whether to include the training metrics.
+    include_val : bool, default=False
+        Whether to include the validation metrics.
+    best_params_columns : list[str], default=[]
+        The names of the columns to include from the best parameters.
+
+    Returns
+    -------
+    row : dict[str, float]
+        The row with the information of the `Result`. Each key represents the name of a
+        column and the value is the corresponding value.
+    """
+
     targets = result.get_data().targets
     predictions = result.get_data().predictions
     time = result.get_data().time
