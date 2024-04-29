@@ -212,6 +212,29 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
         return self.result_
 
+    def save(self):
+        """Saves this `Result` to the disk.
+        It saves the experiment configuration in the config_path file and the
+        `ResultData` in the experiment_info_['results_path'] pickle file.
+        If the files already exist, they will be overwritten.
+        """
+
+        config_path = Path(self.base_path) / self.config_path
+        results_path = Path(self.base_path) / self.experiment_info_["results_path"]
+
+        # Set time stamps
+        if "created_at" in self.experiment_info_:
+            self.experiment_info_["updated_at"] = time.time()
+        else:
+            self.experiment_info_["created_at"] = time.time()
+            self.experiment_info_["updated_at"] = time.time()
+
+        with open(config_path, "w") as f:
+            json.dump(self.experiment_info_, f, indent=4)
+
+        with open(results_path, "wb") as f:
+            pickle.dump(self.result_, f)
+
     def delete(self, missing_ok=False):
         """Deletes the experiment configuration file (json) and the ResultData file
         (pickle) from the disk.

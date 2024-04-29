@@ -2,7 +2,7 @@ import importlib.util
 import json
 import warnings
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -36,12 +36,12 @@ class ResultSet:
         """
         self.results_ = results
 
-    def filter(self, config: dict[str, any] = {}) -> "ResultSet":
+    def filter(self, config: dict) -> "ResultSet":
         """Filters the results by config.
 
         Parameters
         ----------
-        config : dict, optional, default={}
+        config : dict
             The config fields to filter by. To add a result to the filtered set, the
             result's config must contain all the fields in the config parameter with the
             same values. For example, if config={"a": 1, "b": 2}, the result config must
@@ -233,8 +233,29 @@ class ResultSet:
             raise IndexError(f"Index {idx} out of bounds")
         return self.results_[idx]
 
-    def find(self, config, deep=False) -> Result:
-        """Find the first result with the given config.
+    def set(self, idx: int, result: Result):
+        """Sets the `Result` object at the given index.
+
+        Parameters
+        ----------
+        idx : int
+            The index of the experiment to set.
+
+        result : `Result`
+            The `Result` object to set at the given index.
+
+        Raises
+        ------
+        IndexError
+            If the index is out of bounds.
+        """
+
+        if idx < 0 or idx >= len(self.results_):
+            raise IndexError(f"Index {idx} out of bounds")
+        self.results_[idx] = result
+
+    def find(self, config, deep=False) -> Optional[Result]:
+        """Finds the first result with the given config.
 
         Parameters
         ----------
