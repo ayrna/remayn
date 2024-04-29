@@ -1,7 +1,6 @@
 import json
 import pickle
 import time
-import warnings
 from hashlib import md5
 from pathlib import Path
 from typing import Optional
@@ -19,8 +18,8 @@ class Result:
     ----------
     base_path: str
         Base path where all the experiments are stored.
-    config_path: str
-        Path to the file containing the experiment configuration. Relative to the
+    info_path: str
+        Path to the file containing the experiment info. Relative to the
         base_path.
     experiment_info_: dict
         Dictionary containing information about the experiment. It includes the
@@ -36,12 +35,12 @@ class Result:
     """
 
     base_path: str
-    config_path: str
+    info_path: str
     experiment_info_: dict
     result_: Optional[ResultData]
     load_time_: Optional[float]
 
-    def __init__(self, base_path: str, config_path: str, experiment_info: dict):
+    def __init__(self, base_path: str, info_path: str, experiment_info: dict):
         """Initializes the Result object.
         By default, it does not load the whole ResultData.
 
@@ -49,8 +48,8 @@ class Result:
         ----------
         base_path: str
             Base path where all the experiments are stored.
-        config_path: str
-            Path to the file containing the experiment configuration. Relative to the
+        info_path: str
+            Path to the file containing the experiment info. Relative to the
             base_path.
         experiment_info: dict
             Dictionary containing information about the experiment. It should contain the
@@ -67,7 +66,7 @@ class Result:
         """
 
         self.base_path = base_path
-        self.config_path = config_path
+        self.info_path = info_path
         self.experiment_info_ = experiment_info
         self.result_ = None
         self.load_time_ = None
@@ -86,12 +85,12 @@ class Result:
         s = f"Config: {json.dumps(self.get_config(), indent=4)}"
         if self.result_ is None:
             s += f"""
-Results info file: {self.config_path}
+Results info file: {self.info_path}
 Results data file: {self.experiment_info_['results_path']} (not loaded)
 """
         else:
             s += f"""
-Results info file: {self.config_path}
+Results info file: {self.info_path}
 Results data file: {self.experiment_info_['results_path']}
 Load time: {self.load_time_}
 
@@ -172,15 +171,41 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             Dictionary containing the parameters used in the experiment.
         """
 
-        if "config" in self.experiment_info_:
-            return self.experiment_info_["config"]
-        else:
-            warnings.warn(
-                "'config' not found in experiment_info_ dictionary."
-                "Storing the experiment config in the ResultData is deprecated"
-                " and will be removed in future versions."
-            )
-            return self.get_data().config
+        return self.experiment_info_["config"]
+
+    def get_md5sum(self):
+        """Gets the md5sum of the ResultData file, which is stored in the experiment
+        information.
+
+        Returns
+        -------
+        str
+            The md5sum of the ResultData file.
+        """
+
+        return self.experiment_info_["results_md5sum"]
+
+    def get_created_at(self):
+        """Gets the timestamp when the experiment was created.
+
+        Returns
+        -------
+        float
+            The timestamp when the experiment was created.
+        """
+
+        return self.experiment_info_["created_at"]
+
+    def get_updated_at(self):
+        """Gets the timestamp when the experiment was last updated.
+
+        Returns
+        -------
+        float
+            The timestamp when the experiment was last updated.
+        """
+
+        return self.experiment_info_["updated_at"]
 
     def get_data(self, force_reload=False):
         """Gets the ResultData of the experiment. If it was not loaded yet, it loads it
@@ -214,12 +239,12 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
     def save(self):
         """Saves this `Result` to the disk.
-        It saves the experiment configuration in the config_path file and the
+        It saves the experiment information in the info_path file and the
         `ResultData` in the experiment_info_['results_path'] pickle file.
         If the files already exist, they will be overwritten.
         """
 
-        config_path = Path(self.base_path) / self.config_path
+        info_path = Path(self.base_path) / self.info_path
         results_path = Path(self.base_path) / self.experiment_info_["results_path"]
 
         # Set time stamps
@@ -229,14 +254,20 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             self.experiment_info_["created_at"] = time.time()
             self.experiment_info_["updated_at"] = time.time()
 
-        with open(config_path, "w") as f:
-            json.dump(self.experiment_info_, f, indent=4)
-
+        # Save ResultData
         with open(results_path, "wb") as f:
             pickle.dump(self.result_, f)
 
+        # Update md5sum based on new ResultData file
+        with open(results_path, "rb") as f:
+            self.experiment_info_["results_md5sum"] = md5(f.read()).hexdigest()
+
+        # Save experiment info
+        with open(info_path, "w") as f:
+            json.dump(self.experiment_info_, f, indent=4)
+
     def delete(self, missing_ok=False):
-        """Deletes the experiment configuration file (json) and the ResultData file
+        """Deletes the experiment information file (json) and the ResultData file
         (pickle) from the disk.
 
         Parameters
@@ -247,7 +278,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         Raises
         ------
         FileNotFoundError
-            If the experiment configuration file or the `ResultData` file does not exist
+            If the experiment information file or the `ResultData` file does not exist
             and `missing_ok` is False.
 
         Returns
@@ -256,10 +287,10 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             True if the files were deleted successfully.
         """
 
-        config_path = Path(self.base_path) / self.config_path
+        info_path = Path(self.base_path) / self.info_path
         results_path = Path(self.base_path) / self.experiment_info_["results_path"]
 
-        config_path.unlink(missing_ok=missing_ok)
+        info_path.unlink(missing_ok=missing_ok)
         results_path.unlink(missing_ok=missing_ok)
 
         return True
