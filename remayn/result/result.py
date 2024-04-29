@@ -19,6 +19,9 @@ class Result:
     ----------
     base_path: str
         Base path where all the experiments are stored.
+    config_path: str
+        Path to the file containing the experiment configuration. Relative to the
+        base_path.
     experiment_info_: dict
         Dictionary containing information about the experiment. It includes the
         exact path of the ResultData inside the base_path directory (results_path).
@@ -33,11 +36,12 @@ class Result:
     """
 
     base_path: str
+    config_path: str
     experiment_info_: dict
     result_: Optional[ResultData]
     load_time_: Optional[float]
 
-    def __init__(self, base_path: str, experiment_info: dict):
+    def __init__(self, base_path: str, config_path: str, experiment_info: dict):
         """Initializes the Result object.
         By default, it does not load the whole ResultData.
 
@@ -45,6 +49,9 @@ class Result:
         ----------
         base_path: str
             Base path where all the experiments are stored.
+        config_path: str
+            Path to the file containing the experiment configuration. Relative to the
+            base_path.
         experiment_info: dict
             Dictionary containing information about the experiment. It should contain the
             exact path of the ResultData inside the base_path directory (results_path).
@@ -60,6 +67,7 @@ class Result:
         """
 
         self.base_path = base_path
+        self.config_path = config_path
         self.experiment_info_ = experiment_info
         self.result_ = None
         self.load_time_ = None
@@ -77,10 +85,14 @@ class Result:
     def __str__(self):
         s = f"Config: {json.dumps(self.get_config(), indent=4)}"
         if self.result_ is None:
-            s += f"\nResults file: {self.experiment_info_['results_path']} (not loaded)"
+            s += f"""
+Results info file: {self.config_path}
+Results data file: {self.experiment_info_['results_path']} (not loaded)
+"""
         else:
             s += f"""
-Results file: {self.experiment_info_['results_path']}
+Results info file: {self.config_path}
+Results data file: {self.experiment_info_['results_path']}
 Load time: {self.load_time_}
 
 Targets shape: {self.result_.targets.shape if self.result_.targets is not None else 'N/A'}
@@ -199,3 +211,32 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             )
 
         return self.result_
+
+    def delete(self, missing_ok=False):
+        """Deletes the experiment configuration file (json) and the ResultData file
+        (pickle) from the disk.
+
+        Parameters
+        ----------
+        missing_ok: bool, optional, default=False
+            If True, the method will not raise an error if the files do not exist.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the experiment configuration file or the `ResultData` file does not exist
+            and `missing_ok` is False.
+
+        Returns
+        -------
+        bool
+            True if the files were deleted successfully.
+        """
+
+        config_path = Path(self.base_path) / self.config_path
+        results_path = Path(self.base_path) / self.experiment_info_["results_path"]
+
+        config_path.unlink(missing_ok=missing_ok)
+        results_path.unlink(missing_ok=missing_ok)
+
+        return True
