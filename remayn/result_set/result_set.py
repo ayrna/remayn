@@ -12,22 +12,31 @@ from ..utils import sanitize_json
 from .utils import get_row_from_result
 
 
-class BaseResultSet:
+class ResultSet:
+    """Stores a set of `Result` objects.
+    For each `Result` object, it stores the metadata of the experiment, such as the
+    experiment info and the path where the result is stored. The predictions and targets
+    are not loaded until needed.
+
+    Attributes
+    ----------
+    results_ : list of Result
+        The list of `Result` objects stored in the `ResultSet`.
+    """
+
     results_: list[Result]
 
     def __init__(self, results):
+        """Creates a `ResultSet` object from a list of `Result` objects.
+
+        Parameters
+        ----------
+        results : list of Result
+            The list of `Result` objects to store in the `ResultSet`.
+        """
         self.results_ = results
 
-    def __str__(self):
-        return (
-            "ResultSet with"
-            f" {len(self.results_)} result{'s' if len(self.results_) > 1 else ''}"
-        )
-
-    def __repr__(self):
-        return self.__str__()
-
-    def filter(self, config: dict[str, any] = {}) -> "BaseResultSet":
+    def filter(self, config: dict[str, any] = {}) -> "ResultSet":
         """Filters the results by config.
 
         Parameters
@@ -61,7 +70,7 @@ class BaseResultSet:
             if matches:
                 filtered_results.append(result)
 
-        return BaseResultSet(filtered_results)
+        return ResultSet(filtered_results)
 
     def create_dataframe(
         self,
@@ -285,11 +294,30 @@ class BaseResultSet:
     def __getitem__(self, idx):
         return self.results_[idx]
 
-    def load(self):
-        raise NotImplementedError("BaseResultSet does not implement load method.")
+    def __str__(self):
+        return (
+            "ResultSet with"
+            f" {len(self.results_)} result{'s' if len(self.results_) > 1 else ''}"
+        )
+
+    def __repr__(self):
+        return self.__str__()
 
 
-class ResultSet(BaseResultSet):
+class ResultFolder(ResultSet):
+    """Stores a set of set of `Result` objects loaded from a directory.
+    For each `Result` object, it stores the metadata of the experiment, such as the
+    experiment info and the path where the result is stored. The predictions and targets
+    are not loaded until needed.
+
+    Attributes
+    ----------
+    base_path : Path
+        The path where the results are stored.
+    results_ : list of Result
+        The list of `Result` objects stored in the `ResultSet`.
+    """
+
     base_path: Path
     results_: list[Result]
 
@@ -308,7 +336,6 @@ class ResultSet(BaseResultSet):
         json file has a corresponding pkl file. If the number of json files does not
         match the number of pkl files, a ValueError is raised. If a json file cannot be
         loaded, a warning is issued and the file is skipped.
-
         """
 
         json_files = list(self.base_path.rglob("*.json"))

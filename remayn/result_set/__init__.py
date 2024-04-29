@@ -1,5 +1,5 @@
-from .result_set import ResultSet
+from .result_set import ResultFolder
 
 __all__ = [
-    "ResultSet",
+    "ResultFolder",
 ]
