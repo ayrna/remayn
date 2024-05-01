@@ -1,7 +1,8 @@
-from .result import Result
-from .result_data import ResultFile
+from .result import Result, make_result
+from .result_data import ResultData
 
 __all__ = [
     "Result",
-    "ResultFile",
+    "make_result",
+    "ResultData",
 ]
