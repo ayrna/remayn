@@ -3,8 +3,10 @@ import pickle
 import time
 from hashlib import md5
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
+from uuid import uuid4
 
+from ..utils import sanitize_json
 from .result_data import ResultData
 
 
@@ -18,81 +20,96 @@ class Result:
     ----------
     base_path: str
         Base path where all the experiments are stored.
-    info_path: str
-        Path to the file containing the experiment info. Relative to the
-        base_path.
-    experiment_info_: dict
-        Dictionary containing information about the experiment. It includes the
-        exact path of the ResultData inside the base_path directory (results_path).
-        It also contains the md5sum of the file to check if it has been modified
-        (results_md5sum).
-    result_: Optional[ResultData]
-        Contains the ResultData when loaded or None if it was not loaded yet.
+    id: str
+        Unique identifier of the experiment.
+    config_: dict
+        Dictionary containing the parameters used in the experiment.
+    data_: Optional[ResultData]
+        Contains the `ResultData` when loaded or None if it was not loaded yet.
         This attribute should not be accessed directly. Use get_result() instead to
         make sure that the ResultData is properly loaded before accessing it.
-    load_time_: Optional[float]
-        Time taken to load the ResultData. It is None if the file was not loaded yet.
+    data_md5sum_: Optional[str]
+        md5sum of the ResultData file. It is None if the file was not loaded yet or if
+        creating a new Result that was not saved yet.
+    created_at_: Optional[float]
+        Timestamp when the experiment was created. It is None if the experiment was not
+        saved yet.
+    updated_at_: Optional[float]
+        Timestamp when the experiment was last updated. It is None if the experiment was
+        not saved yet.
     """
 
-    base_path: str
-    info_path: str
-    experiment_info_: dict
-    result_: Optional[ResultData]
-    load_time_: Optional[float]
+    base_path: Path
+    id: str
+    config: Optional[dict]
+    data_: Optional[ResultData]
+    data_md5sum_: Optional[str]
+    created_at: Optional[float]
+    updated_at: Optional[float]
 
-    def __init__(self, base_path: str, info_path: str, experiment_info: dict):
+    def __init__(
+        self,
+        base_path: Union[str, Path],
+        id: Optional[str] = None,
+        config: Optional[dict] = None,
+    ):
         """Initializes the Result object.
         By default, it does not load the whole ResultData.
 
         Parameters
         ----------
-        base_path: str
+        base_path: Union[str, Path]
             Base path where all the experiments are stored.
-        info_path: str
-            Path to the file containing the experiment info. Relative to the
-            base_path.
-        experiment_info: dict
-            Dictionary containing information about the experiment. It should contain the
-            exact path of the ResultData inside the base_path directory (results_path).
-            It also contains the md5sum of the file to check if it has been modified
-            (results_md5sum).
-
-        Raises
-        ------
-        ValueError
-            If the experiment_info dictionary does not contain the 'results_path' key.
-        ValueError
-            If the experiment_info dictionary does not contain the 'results_md5sum' key.
+        id: Optional[str]
+            Unique identifier of the experiment. Will be used for the file names. If
+            None, a new unique identifier will be generated.
+        config: Optional[dict]
+            Dictionary containing the parameters used in the experiment.
         """
 
-        self.base_path = base_path
-        self.info_path = info_path
-        self.experiment_info_ = experiment_info
-        self.result_ = None
-        self.load_time_ = None
+        self.base_path = Path(base_path)
+        if id is None:
+            id = str(uuid4())
+        else:
+            self.id = id
+        self.config = config
+        self.data_ = None
+        self.data_md5sum_ = None
+        self.created_at = None
+        self.updated_at = None
 
-        if "results_path" not in experiment_info:
-            raise ValueError(
-                "The experiment_info dictionary must contain the 'results_path' key."
-            )
+    def get_data_path(self):
+        """Gets the path where the ResultData is stored.
 
-        if "results_md5sum" not in experiment_info:
-            raise ValueError(
-                "The experiment_info dictionary must contain the 'results_md5sum' key."
-            )
+        Returns
+        -------
+        Path
+            Path where the ResultData is stored.
+        """
+
+        return self.base_path / f"{self.id}.pkl"
+
+    def get_info_path(self):
+        """Gets the path where the experiment information is stored.
+
+        Returns
+        -------
+        Path
+            Path where the experiment information is stored.
+        """
+
+        return self.base_path / f"{self.id}.json"
 
     def __str__(self):
-        s = f"Config: {json.dumps(self.get_config(), indent=4)}"
+        s = f"Config: {json.dumps(self.config, indent=4)}"
         if self.result_ is None:
             s += f"""
-Results info file: {self.info_path}
-Results data file: {self.experiment_info_['results_path']} (not loaded)
+Results info path: {self.get_info_path()} (data not loaded)
 """
         else:
             s += f"""
-Results info file: {self.info_path}
-Results data file: {self.experiment_info_['results_path']}
-Load time: {self.load_time_}
+Results info path: {self.get_info_path()}
+Results data file: {self.get_data_path()}
 
 Targets shape: {self.result_.targets.shape if self.result_.targets is not None else 'N/A'}
 Predictions shape: {self.result_.predictions.shape if self.result_.predictions is not None else 'N/A'}
@@ -111,7 +128,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
     def __repr__(self):
         return self.__str__()
 
-    def load(self, force=False):
+    def load_data(self, force=False):
         """Load the ResultData from the disk.
         This method reads the ResultData from the disk and stores it in the result_
         attribute. It also checks the integrity of the pickle file using the md5sum.
@@ -137,41 +154,26 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         if self.result_ is not None and not force:
             return
 
-        results_path = Path(self.base_path) / self.experiment_info_["results_path"]
+        data_path = self.get_data_path()
 
-        if not results_path.exists():
+        if not data_path.exists():
             raise FileNotFoundError(
-                f"ResultData {results_path} does not exist."
+                f"ResultData {data_path} does not exist."
                 " The experiment is incomplete!"
             )
 
-        start_time = time.time()
-
-        with open(results_path, "rb") as f:
+        with open(data_path, "rb") as f:
             content = f.read()
 
         md5sum = md5(content).hexdigest()
 
-        if md5sum != self.experiment_info_["results_md5sum"]:
+        if md5sum != self.get_md5sum():
             raise ValueError(
-                f"ResultData {results_path} integrity check failed."
+                f"ResultData {data_path} integrity check failed."
                 " The file may have been modified after the experiment."
             )
 
         self.result_ = pickle.loads(content)
-
-        self.load_time_ = time.time() - start_time
-
-    def get_config(self):
-        """Gets the config of the experiment from the experiment_info_ dictionary.
-
-        Returns
-        -------
-        dict
-            Dictionary containing the parameters used in the experiment.
-        """
-
-        return self.experiment_info_["config"]
 
     def get_md5sum(self):
         """Gets the md5sum of the ResultData file, which is stored in the experiment
@@ -183,29 +185,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             The md5sum of the ResultData file.
         """
 
-        return self.experiment_info_["results_md5sum"]
-
-    def get_created_at(self):
-        """Gets the timestamp when the experiment was created.
-
-        Returns
-        -------
-        float
-            The timestamp when the experiment was created.
-        """
-
-        return self.experiment_info_["created_at"]
-
-    def get_updated_at(self):
-        """Gets the timestamp when the experiment was last updated.
-
-        Returns
-        -------
-        float
-            The timestamp when the experiment was last updated.
-        """
-
-        return self.experiment_info_["updated_at"]
+        return self.data_md5sum_
 
     def get_data(self, force_reload=False):
         """Gets the ResultData of the experiment. If it was not loaded yet, it loads it
@@ -226,7 +206,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         """
 
         if self.result_ is None or force_reload:
-            self.load(force=force_reload)
+            self.load_data(force=force_reload)
 
         if self.result_ is None:
             raise FileNotFoundError(
@@ -237,6 +217,38 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
         return self.result_
 
+    def set_data(self, data: ResultData):
+        """Sets the ResultData of the experiment.
+        This method should be used to set the ResultData instead of setting the result_
+        attribute directly.
+
+        Parameters
+        ----------
+        data: ResultData
+            The ResultData object containing the results of the experiment.
+        """
+
+        self.result_ = data
+
+    def get_experiment_info(self):
+        """Gets all the experiment info as a dictionary, including experiment config,
+        timestamps, md5sum of the ResultData file and the path where the ResultData is
+        stored.
+
+        Returns
+        -------
+        dict
+            Dictionary containing all the experiment information.
+        """
+
+        return {
+            "config": self.config,
+            "data_path": self.get_data_path(),
+            "data_md5sum": self.get_md5sum(),
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
     def save(self):
         """Saves this `Result` to the disk.
         It saves the experiment information in the info_path file and the
@@ -244,27 +256,30 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         If the files already exist, they will be overwritten.
         """
 
-        info_path = Path(self.base_path) / self.info_path
-        results_path = Path(self.base_path) / self.experiment_info_["results_path"]
+        info_path = self.get_info_path()
+        data_path = self.get_data_path()
+
+        current_time = time.time()
 
         # Set time stamps
-        if "created_at" in self.experiment_info_:
-            self.experiment_info_["updated_at"] = time.time()
+        if self.created_at is not None:
+            self.updated_at = current_time
         else:
-            self.experiment_info_["created_at"] = time.time()
-            self.experiment_info_["updated_at"] = time.time()
+            self.created_at = current_time
+            self.updated_at = current_time
 
         # Save ResultData
-        with open(results_path, "wb") as f:
+        with open(data_path, "wb") as f:
             pickle.dump(self.result_, f)
 
         # Update md5sum based on new ResultData file
-        with open(results_path, "rb") as f:
-            self.experiment_info_["results_md5sum"] = md5(f.read()).hexdigest()
+        with open(data_path, "rb") as f:
+            self.data_md5sum_ = md5(f.read()).hexdigest()
 
         # Save experiment info
+        safe_info = sanitize_json(self.get_experiment_info())
         with open(info_path, "w") as f:
-            json.dump(self.experiment_info_, f, indent=4)
+            json.dump(safe_info, f, indent=4)
 
     def delete(self, missing_ok=False):
         """Deletes the experiment information file (json) and the ResultData file
@@ -287,10 +302,101 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             True if the files were deleted successfully.
         """
 
-        info_path = Path(self.base_path) / self.info_path
-        results_path = Path(self.base_path) / self.experiment_info_["results_path"]
+        info_path = self.get_info_path()
+        results_path = self.get_data_path()
 
         info_path.unlink(missing_ok=missing_ok)
         results_path.unlink(missing_ok=missing_ok)
 
         return True
+
+    @staticmethod
+    def load(base_path: Union[str, Path], id: str) -> "Result":
+        """Loads a `Result` from the disk.
+        It loads the experiment information and the `ResultData` from the disk and
+        creates a new `Result` object with the loaded data.
+
+        Parameters
+        ----------
+        base_path: Union[str, Path]
+            Base path where all the experiments are stored.
+        id: str
+            Unique identifier of the experiment.
+
+        Returns
+        -------
+        Result
+            A new `Result` object with the loaded data.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the experiment information file does not exist.
+        """
+
+        result = Result(base_path=base_path, id=id)
+
+        info_path = result.get_info_path()
+
+        with open(info_path, "r") as f:
+            info = json.load(f)
+
+        if "config" not in info:
+            raise ValueError(
+                f"Experiment information file {info_path} does not contain the 'config'"
+                " key. It is not a valid experiment information file."
+            )
+        result.config = info["config"]
+
+        if "data_md5sum" not in info:
+            raise ValueError(
+                f"Experiment information file {info_path} does not contain the"
+                " 'data_md5sum' key. It is not a valid experiment information file."
+            )
+        result.data_md5sum_ = info["data_md5sum"]
+
+        result.created_at = info["created_at"] if "created_at" in info else None
+        result.updated_at = info["updated_at"] if "updated_at" in info else None
+
+        return result
+
+
+def make_result(
+    base_path,
+    config,
+    targets,
+    predictions,
+    train_targets=None,
+    train_predictions=None,
+    val_targets=None,
+    val_predictions=None,
+    time=None,
+    train_history=None,
+    val_history=None,
+    best_params=None,
+):
+    """Helper function to create a `Result` object with the given data.
+    It creates a `Result` object and the associated `ResultData`. The `Result` and
+    the `ResultData` are not saved in the disk. You can call the `save()` method to
+    save them.
+    """
+
+    # Create a new Result (empty id to create a new one)
+    result = Result(base_path=base_path, config=config)
+
+    result.set_data(
+        ResultData(
+            targets=targets,
+            predictions=predictions,
+            train_targets=train_targets,
+            train_predictions=train_predictions,
+            val_targets=val_targets,
+            val_predictions=val_predictions,
+            time=time,
+            train_history=train_history,
+            val_history=val_history,
+            best_params=best_params,
+        )
+    )
+
+    return result

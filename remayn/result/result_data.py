@@ -40,9 +40,7 @@ class ResultData:
 
     def __init__(
         self,
-        name: str,
         *,
-        config: dict,
         targets: np.ndarray,
         predictions: np.ndarray,
         train_targets: Optional[np.ndarray] = None,
@@ -54,8 +52,6 @@ class ResultData:
         val_history: Optional[np.ndarray] = None,
         best_params: Optional[dict] = None,
     ):
-        self.name = name
-        self.config = config
         self.targets = targets
         self.predictions = predictions
         self.train_targets = train_targets
