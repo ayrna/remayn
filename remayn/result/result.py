@@ -11,7 +11,7 @@ from .result_data import ResultData
 
 
 class Result:
-    """Manages the result of a experiment.
+    """Represents the result of a experiment.
     It contains the path where the experiment ResultData is stored, along with the
     experiment information.
     The ResultData is only loaded when needed to save memory and time.
@@ -69,7 +69,7 @@ class Result:
 
         self.base_path = Path(base_path)
         if id is None:
-            id = str(uuid4())
+            self.id = str(uuid4())
         else:
             self.id = id
         self.config = config
@@ -102,7 +102,7 @@ class Result:
 
     def __str__(self):
         s = f"Config: {json.dumps(self.config, indent=4)}"
-        if self.result_ is None:
+        if self.data_ is None:
             s += f"""
 Results info path: {self.get_info_path()} (data not loaded)
 """
@@ -111,17 +111,17 @@ Results info path: {self.get_info_path()} (data not loaded)
 Results info path: {self.get_info_path()}
 Results data file: {self.get_data_path()}
 
-Targets shape: {self.result_.targets.shape if self.result_.targets is not None else 'N/A'}
-Predictions shape: {self.result_.predictions.shape if self.result_.predictions is not None else 'N/A'}
-Train targets shape: {self.result_.train_targets.shape if self.result_.train_targets is not None else 'N/A'}
-Train predictions shape: {self.result_.train_predictions.shape if self.result_.train_predictions is not None else 'N/A'}
-Val targets shape: {self.result_.val_targets.shape if self.result_.val_targets is not None else 'N/A'}
-Val predictions shape: {self.result_.val_predictions.shape if self.result_.val_predictions is not None else 'N/A'}
+Targets shape: {self.data_.targets.shape if self.data_.targets is not None else 'N/A'}
+Predictions shape: {self.data_.predictions.shape if self.data_.predictions is not None else 'N/A'}
+Train targets shape: {self.data_.train_targets.shape if self.data_.train_targets is not None else 'N/A'}
+Train predictions shape: {self.data_.train_predictions.shape if self.data_.train_predictions is not None else 'N/A'}
+Val targets shape: {self.data_.val_targets.shape if self.data_.val_targets is not None else 'N/A'}
+Val predictions shape: {self.data_.val_predictions.shape if self.data_.val_predictions is not None else 'N/A'}
 
-Time: {self.result_.time if self.result_.time is not None else 'N/A'}
-Train history: {self.result_.train_history if self.result_.train_history is not None else 'N/A'}
-Val history: {self.result_.val_history if self.result_.val_history is not None else 'N/A'}
-Best params: {self.result_.best_params if self.result_.best_params is not None else 'N/A'}
+Time: {self.data_.time if self.data_.time is not None else 'N/A'}
+Train history: {self.data_.train_history if self.data_.train_history is not None else 'N/A'}
+Val history: {self.data_.val_history if self.data_.val_history is not None else 'N/A'}
+Best params: {self.data_.best_params if self.data_.best_params is not None else 'N/A'}
 """
         return s
 
@@ -130,7 +130,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
 
     def load_data(self, force=False):
         """Load the ResultData from the disk.
-        This method reads the ResultData from the disk and stores it in the result_
+        This method reads the ResultData from the disk and stores it in the data_
         attribute. It also checks the integrity of the pickle file using the md5sum.
         This method is called automatically by get_result() when the ResultData is
         needed. However, you can call it manually to force the loading of the file.
@@ -151,7 +151,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             information.
         """
 
-        if self.result_ is not None and not force:
+        if self.data_ is not None and not force:
             return
 
         data_path = self.get_data_path()
@@ -173,7 +173,8 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
                 " The file may have been modified after the experiment."
             )
 
-        self.result_ = pickle.loads(content)
+        data = pickle.loads(content)
+        self.data_ = data
 
     def get_md5sum(self):
         """Gets the md5sum of the ResultData file, which is stored in the experiment
@@ -191,7 +192,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         """Gets the ResultData of the experiment. If it was not loaded yet, it loads it
         from the disk. If the file was already loaded, it returns the stored object.
         This method should be used to access the ResultData instead of accessing the
-        result_ attribute directly.
+        data_ attribute directly.
 
         Parameters
         ----------
@@ -202,24 +203,18 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         Returns
         -------
         ResultData
-            The ResultData object containing the results of the experiment.
+            The ResultData object containing the results of the experiment. None if the
+            ResultData is empty.
         """
 
-        if self.result_ is None or force_reload:
+        if self.data_ is None or force_reload:
             self.load_data(force=force_reload)
 
-        if self.result_ is None:
-            raise FileNotFoundError(
-                "ResultData could not be loaded. Make sure that the base_path is"
-                " correct and the 'result_path' value in experiment_info_  dict is"
-                " correct."
-            )
-
-        return self.result_
+        return self.data_
 
     def set_data(self, data: ResultData):
         """Sets the ResultData of the experiment.
-        This method should be used to set the ResultData instead of setting the result_
+        This method should be used to set the ResultData instead of setting the data_
         attribute directly.
 
         Parameters
@@ -228,7 +223,7 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             The ResultData object containing the results of the experiment.
         """
 
-        self.result_ = data
+        self.data_ = data
 
     def get_experiment_info(self):
         """Gets all the experiment info as a dictionary, including experiment config,
@@ -254,6 +249,13 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         It saves the experiment information in the info_path file and the
         `ResultData` in the experiment_info_['results_path'] pickle file.
         If the files already exist, they will be overwritten.
+        If the directory where the files should be saved does not exist, it will be
+        created.
+
+        Returns
+        -------
+        Result
+            The `Result` object itself.
         """
 
         info_path = self.get_info_path()
@@ -268,9 +270,12 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
             self.created_at = current_time
             self.updated_at = current_time
 
+        # Create directory
+        self.base_path.mkdir(parents=True, exist_ok=True)
+
         # Save ResultData
         with open(data_path, "wb") as f:
-            pickle.dump(self.result_, f)
+            pickle.dump(self.data_, f)
 
         # Update md5sum based on new ResultData file
         with open(data_path, "rb") as f:
@@ -280,6 +285,8 @@ Best params: {self.result_.best_params if self.result_.best_params is not None e
         safe_info = sanitize_json(self.get_experiment_info())
         with open(info_path, "w") as f:
             json.dump(safe_info, f, indent=4)
+
+        return self
 
     def delete(self, missing_ok=False):
         """Deletes the experiment information file (json) and the ResultData file
