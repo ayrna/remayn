@@ -149,7 +149,7 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
 
     @config.setter
     def config(self, value):
-        self.config_md5sum_ = md5(json.dumps(value).encode()).hexdigest()
+        self.config_md5sum_ = md5(json.dumps(sanitize_json(value)).encode()).hexdigest()
         self.config_ = value
 
     def load_data(self, force=False):
