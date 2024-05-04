@@ -326,6 +326,14 @@ def test_result_comparison(result, saved_result, complete_result):
     assert saved_result == saved_result
     assert complete_result == complete_result
 
+    assert result != 1
+    assert saved_result != 1
+    assert complete_result != 1
+
+    assert result != "result"
+    assert saved_result != "saved_result"
+    assert complete_result != "complete_result"
+
     complete_result2 = deepcopy(complete_result)
     assert complete_result == complete_result2
 
