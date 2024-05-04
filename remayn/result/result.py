@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Optional, Union
 from uuid import uuid4
 
+import numpy as np
+
 from ..utils import sanitize_json
 from .result_data import ResultData
 
@@ -369,23 +371,75 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
 
 
 def make_result(
-    base_path,
-    config,
-    targets,
-    predictions,
-    train_targets=None,
-    train_predictions=None,
-    val_targets=None,
-    val_predictions=None,
-    time=None,
-    train_history=None,
-    val_history=None,
-    best_params=None,
+    base_path: Union[str, Path],
+    config: dict,
+    targets: np.ndarray,
+    predictions: np.ndarray,
+    train_targets: Optional[np.ndarray] = None,
+    train_predictions: Optional[np.ndarray] = None,
+    val_targets: Optional[np.ndarray] = None,
+    val_predictions: Optional[np.ndarray] = None,
+    time: Optional[float] = None,
+    train_history: Optional[np.ndarray] = None,
+    val_history: Optional[np.ndarray] = None,
+    best_params: Optional[dict] = None,
 ):
     """Helper function to create a `Result` object with the given data.
     It creates a `Result` object and the associated `ResultData`. The `Result` and
     the `ResultData` are not saved in the disk. You can call the `save()` method to
     save them.
+
+    Parameters
+    ----------
+    base_path: Union[str, Path]
+        Path of the main directory that will contain this `Result` and all the other
+        results related to these experiments.
+    config: dict
+        Dictionary containing the parameters used in the experiment.
+    targets: np.ndarray
+        Array containing the targets of the experiment. Any shape can be used.
+    predictions: np.ndarray
+        Array containing the predictions of the experiment. Any shape can be used.
+    train_targets: Optional[np.ndarray], optional, default=None
+        Array containing the training targets of the experiment. Any shape can be used.
+    train_predictions: Optional[np.ndarray], optional, default=None
+        Array containing the training predictions of the experiment. Any shape can be
+        used.
+    val_targets: Optional[np.ndarray], optional, default=None
+        Array containing the validation targets of the experiment. Any shape can be
+        used.
+    val_predictions: Optional[np.ndarray], optional, default=None
+        Array containing the validation predictions of the experiment. Any shape can be
+        used.
+    time: Optional[float], optional, default=None
+        Time spent to run the experiment.
+    train_history: Optional[np.ndarray], optional, default=None
+        Array containing the training history recorded during the training process. It
+        should be a 1D array with the value of the error on each iteration.
+    val_history: Optional[np.ndarray], optional, default=None
+        Array containing the validation history recorded during the training process. It
+        should be a 1D array with the value of the error on each iteration.
+    best_params: Optional[dict], optional, default=None
+        Dictionary containing the best parameters found during the experiment. It can be
+        used in case that the experiment employs a cross-validation process. It can be
+        left as None if the experiment does not use a cross-validation process or the
+        cross-validation process is splitted in different experiments.
+
+    Returns
+    -------
+    Result
+        A new `Result` object with the given data. The `Result` is not saved in the
+        disk. You can call the `save()` method to save it.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from remayn.result import make_result
+    >>> targets = np.array([1, 2, 3])
+    >>> predictions = np.array([1.1, 2.2, 3.3])
+    >>> config = {"model": "linear_regression"}
+    >>> result = make_result("results", config, targets, predictions)
+    >>> result.save()
     """
 
     # Create a new Result (empty id to create a new one)
