@@ -350,14 +350,25 @@ class ResultFolder(ResultSet):
 
     def load(self):
         """Loads the experiment info of all the results from the `base_path` directory.
-        Only the metadata of the experiments is loaded, while the predictions and targets
-        are not loaded until needed.
+        Only the metadata of the experiments is loaded, while the `ResultData`is not
+        loaded until needed.
 
         It retrieves all the json files from `base_path`. Also, it checks that each
         json file has a corresponding pkl file. If the number of json files does not
-        match the number of pkl files, a ValueError is raised. If a json file cannot be
-        loaded, a warning is issued and the file is skipped.
+        match the number of pkl files, a ValueError is raised.
+
+        Raises
+        ------
+        ValueError
+            If the number of json files does not match the number of pkl files.
+
+        Examples
+        --------
+        >>> from remayn.result_set import ResultFolder
+        >>> rf = ResultFolder("./results")
         """
+
+        self.results_ = []
 
         json_files = list(self.base_path.rglob("*.json"))
         pkl_files = list(self.base_path.rglob("*.pkl"))
@@ -375,19 +386,5 @@ class ResultFolder(ResultSet):
             )
 
         for path in json_files:
-            try:
-                with open(path, "r") as f:
-                    experiment_info = json.load(f)
-            except json.JSONDecodeError:
-                warnings.warn(
-                    f"Could not load json file {path}. Skipping this file.",
-                    RuntimeWarning,
-                )
-            except FileNotFoundError:
-                warnings.warn(
-                    f"Could not find json file {path}. Skipping this file.",
-                    RuntimeWarning,
-                )
-
-            result = Result(self.base_path, experiment_info)
+            result = Result.load(self.base_path, path.stem)
             self.results_.append(result)

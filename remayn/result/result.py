@@ -341,14 +341,32 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         ------
         FileNotFoundError
             If the experiment information file does not exist.
+        ValueError
+            If the experiment information file is not a valid json file.
+            If the experiment information file does not contain the 'config' key.
+            If the experiment information file does not contain the 'data_md5sum' key.
+
+        Examples
+        --------
+        >>> from remayn.result import Result
+        >>> result = Result.load("./results", "123")
         """
 
         result = Result(base_path=base_path, id=id)
 
         info_path = result.get_info_path()
 
-        with open(info_path, "r") as f:
-            info = json.load(f)
+        try:
+            with open(info_path, "r") as f:
+                info = json.load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Experiment information file {info_path} does not exist."
+            )
+        except json.JSONDecodeError:
+            raise ValueError(
+                f"Experiment information file {info_path} is not a valid json file."
+            )
 
         if "config" not in info:
             raise ValueError(
