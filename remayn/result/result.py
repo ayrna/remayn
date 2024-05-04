@@ -24,8 +24,10 @@ class Result:
         Base path where all the experiments are stored.
     id: str
         Unique identifier of the experiment.
-    config_: dict
+    config: dict
         Dictionary containing the parameters used in the experiment.
+    config_md5sum_: Optional[str]
+        md5sum of the config dictionary.
     data_: Optional[ResultData]
         Contains the `ResultData` when loaded or None if it was not loaded yet.
         This attribute should not be accessed directly. Use get_result() instead to
@@ -44,6 +46,7 @@ class Result:
     base_path: Path
     id: str
     config: Optional[dict]
+    config_md5sum_: Optional[str]
     data_: Optional[ResultData]
     data_md5sum_: Optional[str]
     created_at: Optional[float]
@@ -129,6 +132,25 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
 
     def __repr__(self):
         return self.__str__()
+
+    def __eq__(self, other):
+        if not isinstance(other, Result):
+            return False
+
+        return (
+            self.base_path == other.base_path
+            and self.id == other.id
+            and self.config_md5sum_ == other.config_md5sum_
+        )
+
+    @property
+    def config(self):
+        return self.config_
+
+    @config.setter
+    def config(self, value):
+        self.config_md5sum_ = md5(json.dumps(value).encode()).hexdigest()
+        self.config_ = value
 
     def load_data(self, force=False):
         """Load the ResultData from the disk.
@@ -240,6 +262,7 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
 
         return {
             "config": self.config,
+            "config_md5sum": self.config_md5sum_,
             "data_path": self.get_data_path(),
             "data_md5sum": self.get_md5sum(),
             "created_at": self.created_at,

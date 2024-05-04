@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
 
@@ -313,3 +315,32 @@ def test_save_result(saved_result, complete_result, result_path):
     assert (data.train_history == np.array([3, 5, 3])).all()
     assert (data.val_history == np.array([2, 2, 3])).all()
     assert data.best_params == {"bs": 64, "estimator_config": {"lr": 1e-5}, "new": 1}
+
+
+def test_result_comparison(result, saved_result, complete_result):
+    assert result != saved_result
+    assert result != complete_result
+    assert saved_result != complete_result
+
+    assert result == result
+    assert saved_result == saved_result
+    assert complete_result == complete_result
+
+    complete_result2 = deepcopy(complete_result)
+    assert complete_result == complete_result2
+
+    complete_result2.config = {"bs": [32, 64, 128]}
+    assert complete_result != complete_result2
+    complete_result2.config = complete_result.config
+    assert complete_result == complete_result2
+
+    # data_ is not compared
+    data = complete_result2.get_data()
+    data.targets = np.array([1, 1, 1])
+    complete_result2.set_data(data)
+    assert complete_result == complete_result2
+    complete_result2.save()
+    assert complete_result == complete_result2
+
+    # It can be compared directly
+    assert complete_result.get_data() != complete_result2.get_data()
