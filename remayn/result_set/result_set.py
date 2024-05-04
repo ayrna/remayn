@@ -344,7 +344,8 @@ class ResultFolder(ResultSet):
 
     def __init__(self, base_path):
         self.base_path = Path(base_path)
-        self.results_ = []
+
+        super().__init__(results=[])
 
         self.load()
 
