@@ -20,13 +20,13 @@ class ResultSet:
 
     Attributes
     ----------
-    results_ : list of Result
+    results_ : set of Result
         The list of `Result` objects stored in the `ResultSet`.
     """
 
-    results_: list[Result]
+    results_: set[Result]
 
-    def __init__(self, results):
+    def __init__(self, results: set[Result]):
         """Creates a `ResultSet` object from a list of `Result` objects.
 
         Parameters
@@ -34,7 +34,27 @@ class ResultSet:
         results : list of Result
             The list of `Result` objects to store in the `ResultSet`.
         """
+
         self.results_ = results
+
+        if not isinstance(self.results_, set):
+            self.results_ = set(self.results_)
+
+    def contains(self, result: Result) -> bool:
+        """Checks if the `ResultSet` contains the given `Result`.
+
+        Parameters
+        ----------
+        result : Result
+            The `Result` object to check for.
+
+        Returns
+        -------
+        contains : bool
+            Whether the `ResultSet` contains the given `Result`.
+        """
+
+        return result in self.results_
 
     def filter(self, config: dict) -> "ResultSet":
         """Filters the results by config.
@@ -209,50 +229,34 @@ class ResultSet:
 
         return pd.DataFrame(data)
 
-    def get(self, idx: int) -> Result:
-        """Gets the `Result` object associated with the experiment at the given index.
+    def add(self, result: Result):
+        """Adds a `Result` object to the `ResultSet`.
 
         Parameters
         ----------
-        idx : int
-            The index of the experiment to obtain.
-
-        Returns
-        -------
-        result : `Result` or None
-            The `Result` object of the experiment at the given index.
-            If the index is out of bounds, returns None.
-
-        Raises
-        ------
-        IndexError
-            If the index is out of bounds.
-        """
-
-        if idx < 0 or idx >= len(self.results_):
-            raise IndexError(f"Index {idx} out of bounds")
-        return self.results_[idx]
-
-    def set(self, idx: int, result: Result):
-        """Sets the `Result` object at the given index.
-
-        Parameters
-        ----------
-        idx : int
-            The index of the experiment to set.
-
         result : `Result`
-            The `Result` object to set at the given index.
+            The `Result` object to add.
+        """
+
+        self.results_.add(result)
+
+    def remove(self, result: Result):
+        """Removes a `Result` object from the `ResultSet`.
+
+        Parameters
+        ----------
+        result : `Result`
+            The `Result` object to remove.
 
         Raises
         ------
-        IndexError
-            If the index is out of bounds.
+        ValueError
+            If the `Result` object is not in the `ResultSet`.
         """
 
-        if idx < 0 or idx >= len(self.results_):
-            raise IndexError(f"Index {idx} out of bounds")
-        self.results_[idx] = result
+        if result not in self.results_:
+            raise KeyError(f"Result {result} not in ResultSet")
+        self.results_.remove(result)
 
     def find(self, config, deep=False) -> Optional[Result]:
         """Finds the first result with the given config.
@@ -323,6 +327,9 @@ class ResultSet:
 
     def __repr__(self):
         return self.__str__()
+
+    def __contains__(self, result: Result) -> bool:
+        return self.contains(result)
 
 
 class ResultFolder(ResultSet):
