@@ -6,6 +6,36 @@ import pytest
 from remayn.result import Result, ResultData, make_result
 
 
+class TestEstimator:
+    __test__ = False
+
+    def __init__(self, lr):
+        self.lr = lr
+
+    def __str__(self):
+        return f"TestEstimator(lr={self.lr})"
+
+    def __repr__(self):
+        return str(self)
+
+    def fit(self, X, y):
+        pass
+
+    def predict(self, X):
+        pass
+
+
+class WrongEstimator:
+    def __init__(self, lr):
+        self.lr = lr
+
+    def fit(self, X, y):
+        pass
+
+    def predict(self, X):
+        pass
+
+
 @pytest.fixture
 def result_path(tmp_path):
     return tmp_path / "result"
@@ -22,10 +52,24 @@ def saved_result(result_path):
 
 
 @pytest.fixture
-def complete_result(result_path):
+def estimator():
+    return TestEstimator(lr=1e-3)
+
+
+@pytest.fixture
+def result_config(estimator):
+    return {
+        "bs": [32, 64, 128],
+        "estimator_config": {"lr": [1e-3, 1e-4]},
+        "estimator": estimator,
+    }
+
+
+@pytest.fixture
+def complete_result(result_path, result_config):
     return make_result(
         base_path=result_path,
-        config={"bs": [32, 64, 128], "estimator_config": {"lr": [1e-3, 1e-4]}},
+        config=result_config,
         targets=np.array([1, 2, 3]),
         predictions=np.array([1, 2, 3]),
         train_targets=np.array([1, 2, 3]),
@@ -73,12 +117,9 @@ def test_init_save(result, result_path):
     assert data_path.exists()
 
 
-def test_make_result(complete_result, result_path):
+def test_make_result(complete_result, result_path, result_config):
     assert complete_result.base_path == result_path
-    assert complete_result.config == {
-        "bs": [32, 64, 128],
-        "estimator_config": {"lr": [1e-3, 1e-4]},
-    }
+    assert complete_result.config == result_config
 
     complete_result.load_data()
     data = complete_result.get_data()
@@ -101,7 +142,7 @@ def test_make_result(complete_result, result_path):
     assert data_path.exists()
 
 
-def test_load_data(result, saved_result, complete_result, result_path):
+def test_load_data(result, saved_result, complete_result, result_path, result_config):
     with pytest.raises(FileNotFoundError):
         result.load_data()
 
@@ -110,10 +151,7 @@ def test_load_data(result, saved_result, complete_result, result_path):
     assert data is None
 
     assert complete_result.base_path == result_path
-    assert complete_result.config == {
-        "bs": [32, 64, 128],
-        "estimator_config": {"lr": [1e-3, 1e-4]},
-    }
+    assert complete_result.config == result_config
 
     complete_result.load_data()
     data = complete_result.get_data()
@@ -178,7 +216,7 @@ def test_delete_result(result, saved_result, complete_result, result_path):
     assert not data_path.exists()
 
 
-def test_load_result(saved_result, complete_result, result_path):
+def test_load_result(saved_result, complete_result, result_path, result_config):
     # saved_result
     loaded_result = Result.load(result_path, saved_result.id)
     assert loaded_result.base_path == result_path
@@ -196,10 +234,7 @@ def test_load_result(saved_result, complete_result, result_path):
     # complete_result
     loaded_result = Result.load(result_path, complete_result.id)
     assert loaded_result.base_path == result_path
-    assert loaded_result.config == {
-        "bs": [32, 64, 128],
-        "estimator_config": {"lr": [1e-3, 1e-4]},
-    }
+    assert loaded_result.compare_config(result_config)
 
     loaded_result.load_data()
     data = loaded_result.get_data()
@@ -222,7 +257,7 @@ def test_load_result(saved_result, complete_result, result_path):
     assert data_path.exists()
 
 
-def test_save_result(saved_result, complete_result, result_path):
+def test_save_result(saved_result, complete_result, result_path, result_config):
     # saved_result
     saved_result.save()
     assert saved_result.config is None
@@ -265,10 +300,7 @@ def test_save_result(saved_result, complete_result, result_path):
 
     # complete_result
     complete_result.save()
-    assert complete_result.config == {
-        "bs": [32, 64, 128],
-        "estimator_config": {"lr": [1e-3, 1e-4]},
-    }
+    assert complete_result.config == result_config
     complete_result.config = {"bs": [32, 64, 128]}
     complete_result.save()
     loaded_result = Result.load(result_path, complete_result.id)
@@ -316,9 +348,14 @@ def test_save_result(saved_result, complete_result, result_path):
     assert (data.val_history == np.array([2, 2, 3])).all()
     assert data.best_params == {"bs": 64, "estimator_config": {"lr": 1e-5}, "new": 1}
 
+    # try to assign and save a config with the WrongEstimator
+    complete_result.config["estimator"] = WrongEstimator(lr=1e-3)
+    with pytest.raises(ValueError):
+        complete_result.save()
+
 
 def test_result_comparison(result, saved_result, complete_result):
-    assert result != saved_result
+    assert result == saved_result
     assert result != complete_result
     assert saved_result != complete_result
 

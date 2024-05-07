@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from ..utils import sanitize_json
+from ..utils import NonDefaultStrMethodError, sanitize_json
 from .result_data import ResultData
 
 
@@ -25,9 +25,9 @@ class Result:
     id: str
         Unique identifier of the experiment.
     config: dict
-        Dictionary containing the parameters used in the experiment.
-    config_md5sum_: Optional[str]
-        md5sum of the config dictionary.
+        Dictionary containing the parameters used in the experiment. All the elements
+        in the dictionary must be JSON serializable. Objects contained in this dict
+        should implement a custom __str__ method.
     data_: Optional[ResultData]
         Contains the `ResultData` when loaded or None if it was not loaded yet.
         This attribute should not be accessed directly. Use get_result() instead to
@@ -46,7 +46,6 @@ class Result:
     base_path: Path
     id: str
     config: Optional[dict]
-    config_md5sum_: Optional[str]
     data_: Optional[ResultData]
     data_md5sum_: Optional[str]
     created_at: Optional[float]
@@ -137,20 +136,35 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         if not isinstance(other, Result):
             return False
 
-        return (
-            self.base_path == other.base_path
-            and self.id == other.id
-            and self.config_md5sum_ == other.config_md5sum_
-        )
+        return str(self.config) == str(other.config)
 
-    @property
-    def config(self):
-        return self.config_
+    def __hash__(self):
+        return hash(str(self.config))
 
-    @config.setter
-    def config(self, value):
-        self.config_md5sum_ = md5(json.dumps(sanitize_json(value)).encode()).hexdigest()
-        self.config_ = value
+    def compare_config(self, other: Union["Result", dict]) -> bool:
+        """Compare the config of this Result with the config of `other` Result. It
+        returns True if the configs are equal and False otherwise.
+
+        Parameters
+        ----------
+        other: Union[Result, dict]
+            The other Result object or a dictionary containing the config of the
+            other experiment.
+
+        Returns
+        -------
+        bool
+            True if the configs are equal and False otherwise.
+        """
+
+        if isinstance(other, Result):
+            return sanitize_json(self.config) == sanitize_json(other.config)
+        elif isinstance(other, dict):
+            return sanitize_json(self.config) == sanitize_json(other)
+        else:
+            raise ValueError(
+                f"Expected a Result or a dict, but got {type(other)} instead."
+            )
 
     def load_data(self, force=False):
         """Load the ResultData from the disk.
@@ -262,7 +276,6 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
 
         return {
             "config": self.config,
-            "config_md5sum": self.config_md5sum_,
             "data_path": self.get_data_path(),
             "data_md5sum": self.get_md5sum(),
             "created_at": self.created_at,
@@ -307,7 +320,18 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
             self.data_md5sum_ = md5(f.read()).hexdigest()
 
         # Save experiment info
-        safe_info = sanitize_json(self.get_experiment_info())
+        experiment_info = self.get_experiment_info()
+        safe_info = None
+        try:
+            safe_info = sanitize_json(experiment_info, accept_default_str=False)
+        except NonDefaultStrMethodError:
+            raise ValueError(
+                "Experiment info contains some fields that are subject to change when"
+                " the experiment is loaded from disk. Please, make sure that all the"
+                " elements within the config are JSON serializable and show a"
+                f" deterministic representation.\n{safe_info=}"
+            )
+
         with open(info_path, "w") as f:
             json.dump(safe_info, f, indent=4)
 
