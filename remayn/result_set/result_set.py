@@ -309,58 +309,6 @@ class ResultSet:
                 f"Expected str, dict or Result, got {type(key).__name__}",
             )
 
-    # def find(self, config, deep=False) -> Optional[Result]:
-    #     """Finds the first result with the given config.
-
-    #     Parameters
-    #     ----------
-    #     config : dict
-    #         The config to search for.
-
-    #     deep : bool, optional, default=False
-    #         Whether to use deep comparison of configs. Requires the deepdiff package.
-    #         Recommended when using nested dictionaries or nan values.
-
-    #     Returns
-    #     -------
-    #     result : `Result` or None
-    #         The first `Result` with the given config, or None if not found.
-
-    #     """
-
-    #     safe_config = sanitize_json(config)
-    #     config_json = json.dumps(safe_config, indent=4)
-    #     config_from_json = json.loads(config_json)
-
-    #     def _number_format_fn(x, significant_digits, number_format_notation):
-    #         return str(round(x, significant_digits))
-
-    #     if deep:
-    #         try:
-    #             from deepdiff import DeepDiff
-
-    #             for result in self.results_:
-    #                 diff = DeepDiff(
-    #                     result.config,
-    #                     config_from_json,
-    #                     ignore_nan_inequality=True,
-    #                     ignore_order=True,
-    #                     ignore_numeric_type_changes=True,
-    #                     significant_digits=6,
-    #                     number_to_string_func=_number_format_fn,
-    #                 )
-    #                 if diff == {}:
-    #                     return result
-    #         except ImportError:
-    #             raise ImportError(
-    #                 "deepdiff is required to use deep comparison of configs"
-    #             )
-    #     else:
-    #         for result in self.results_:
-    #             if result.config == config_from_json:
-    #                 return result
-    #     return None
-
     def __iter__(self):
         """Returns an iterator to the `Result` objects contained in this `ResultSet`.
 
