@@ -2,7 +2,7 @@ import importlib.util
 import json
 import warnings
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Union
 
 import numpy as np
 import pandas as pd
@@ -20,41 +20,80 @@ class ResultSet:
 
     Attributes
     ----------
-    results_ : set of Result
-        The list of `Result` objects stored in the `ResultSet`.
+    results_ : dict[dict, Result]
+        Dictionary that contains the config of the experiment as the key and the
+        `Result` object as the value.
     """
 
-    results_: set[Result]
+    results_: dict[dict, Result]
 
-    def __init__(self, results: set[Result]):
-        """Creates a `ResultSet` object from a list of `Result` objects.
+    def __init__(self, results: Union[list[Result], set[Result], dict[dict, Result]]):
+        """Creates a `ResultSet` object.
+        It can be initialised from a list, a set or a dictionary:
+        - If a list or a set is provided, the config of the `Result` objects will be used
+          as the key in the dictionary. If there are repeated configs, only the last
+          `Result` object with that config will be stored.
+        - If a dictionary is provided, it is assigned to the `results_` attribute.
 
         Parameters
         ----------
-        results : list of Result
-            The list of `Result` objects to store in the `ResultSet`.
+        results : Union[list[Result], set[Result], dict[dict, Result]]
+            The `Result` objects to store in the `ResultSet`.
+
+        Raises
+        ------
+        TypeError
+            If the `results` parameter is not a list, a set or a dictionary.
         """
 
-        self.results_ = results
+        if isinstance(results, dict):
+            self.results_ = results
+        elif isinstance(results, (list, set)):
+            self.results_ = {
+                str(sanitize_json(result.config)): result for result in results
+            }
+        else:
+            raise TypeError(
+                f"Expected list, set or dict, got {type(results).__name__}",
+            )
 
-        if not isinstance(self.results_, set):
-            self.results_ = set(self.results_)
-
-    def contains(self, result: Result) -> bool:
+    def contains(self, result: Union[str, dict, Result]) -> bool:
         """Checks if the `ResultSet` contains the given `Result`.
 
         Parameters
         ----------
-        result : Result
-            The `Result` object to check for.
+        result : Union[str, dict, Result]
+            The result that is searched in the `ResultSet`. It can be:
+            - a string: the config dict of the result transformed to string,
+            - a dict: the config dict of the result,
+            - a `Result` object.
+
+        If the result is a string, it is employed as the key to search in the
+        `ResultSet`. If the result is a dict, it is json sanitized and transformed to
+        string to be used as the key. If the result is a `Result` object, its config is
+        sanitized and transformed to string to be used as the key.
 
         Returns
         -------
         contains : bool
-            Whether the `ResultSet` contains the given `Result`.
+            Whether the `ResultSet` contains the given result.
+
+        Raises
+        ------
+        TypeError
+            If the `result` parameter is not a str, a dict or a `Result`.
         """
 
-        return result in self.results_
+        if isinstance(result, str):
+            return result in self.results_
+        elif isinstance(result, dict):
+            return str(sanitize_json(result)) in self.results_
+        elif isinstance(result, Result):
+            return str(sanitize_json(result.config)) in self.results_
+        else:
+            raise TypeError(
+                f"Expected str, dict or Result, got {type(result).__name__}",
+            )
 
     def filter(self, config: dict) -> "ResultSet":
         """Filters the results by config.
@@ -69,9 +108,8 @@ class ResultSet:
             additional fields not listed in the provided config dictionary.
         Returns
         -------
-        results : CustomResultSet
-            A `CustomResultSet` that contains only the results that match the given
-            config.
+        results : ResultSet
+            A `ResultSet` that contains only the results that match the given config.
         """
 
         safe_config = sanitize_json(config)
@@ -80,7 +118,7 @@ class ResultSet:
 
         filtered_results = []
         for result in self.results_:
-            config = result.get_config()
+            config = result.config
             matches = True
             for k, v in config_from_json.items():
                 if k not in config.keys() or config[k] != v:
@@ -230,7 +268,8 @@ class ResultSet:
         return pd.DataFrame(data)
 
     def add(self, result: Result):
-        """Adds a `Result` object to the `ResultSet`.
+        """Adds a `Result` object to the `ResultSet`. If the result already exists in
+        the `ResultSet`, it will be replaced by the new one.
 
         Parameters
         ----------
@@ -238,86 +277,137 @@ class ResultSet:
             The `Result` object to add.
         """
 
-        self.results_.add(result)
+        self.results_[str(sanitize_json(result.config))] = result
 
-    def remove(self, result: Result):
-        """Removes a `Result` object from the `ResultSet`.
+    def remove(self, key: Union[str, dict, Result]):
+        """Removes a `Result` object identified by a key from the `ResultSet`.
 
         Parameters
         ----------
-        result : `Result`
-            The `Result` object to remove.
+        key : Union[str, dict, Result]
+            The key of the `Result` to remove. It can be given as:
+            - a string: the config dict of the result transformed to string,
+            - a dict: the config dict of the result,
+            - a `Result` object.
 
         Raises
         ------
-        ValueError
-            If the `Result` object is not in the `ResultSet`.
+        TypeError
+            If the `key` parameter is not a str, a dict or a `Result`.
+        KeyError
+            If the key is not found in the `ResultSet`.
         """
 
-        if result not in self.results_:
-            raise KeyError(f"Result {result} not in ResultSet")
-        self.results_.remove(result)
+        if isinstance(key, str):
+            del self.results_[key]
+        elif isinstance(key, dict):
+            del self.results_[str(sanitize_json(key))]
+        elif isinstance(key, Result):
+            del self.results_[str(sanitize_json(key.config))]
+        else:
+            raise TypeError(
+                f"Expected str, dict or Result, got {type(key).__name__}",
+            )
 
-    def find(self, config, deep=False) -> Optional[Result]:
-        """Finds the first result with the given config.
+    # def find(self, config, deep=False) -> Optional[Result]:
+    #     """Finds the first result with the given config.
 
-        Parameters
-        ----------
-        config : dict
-            The config to search for.
+    #     Parameters
+    #     ----------
+    #     config : dict
+    #         The config to search for.
 
-        deep : bool, optional, default=False
-            Whether to use deep comparison of configs. Requires the deepdiff package.
-            Recommended when using nested dictionaries or nan values.
+    #     deep : bool, optional, default=False
+    #         Whether to use deep comparison of configs. Requires the deepdiff package.
+    #         Recommended when using nested dictionaries or nan values.
+
+    #     Returns
+    #     -------
+    #     result : `Result` or None
+    #         The first `Result` with the given config, or None if not found.
+
+    #     """
+
+    #     safe_config = sanitize_json(config)
+    #     config_json = json.dumps(safe_config, indent=4)
+    #     config_from_json = json.loads(config_json)
+
+    #     def _number_format_fn(x, significant_digits, number_format_notation):
+    #         return str(round(x, significant_digits))
+
+    #     if deep:
+    #         try:
+    #             from deepdiff import DeepDiff
+
+    #             for result in self.results_:
+    #                 diff = DeepDiff(
+    #                     result.config,
+    #                     config_from_json,
+    #                     ignore_nan_inequality=True,
+    #                     ignore_order=True,
+    #                     ignore_numeric_type_changes=True,
+    #                     significant_digits=6,
+    #                     number_to_string_func=_number_format_fn,
+    #                 )
+    #                 if diff == {}:
+    #                     return result
+    #         except ImportError:
+    #             raise ImportError(
+    #                 "deepdiff is required to use deep comparison of configs"
+    #             )
+    #     else:
+    #         for result in self.results_:
+    #             if result.config == config_from_json:
+    #                 return result
+    #     return None
+
+    def __iter__(self):
+        """Returns an iterator to the `Result` objects contained in this `ResultSet`.
 
         Returns
         -------
-        result : `Result` or None
-            The first `Result` with the given config, or None if not found.
-
+        iter : Iterator[Result]
+            An iterator to the `Result` objects in the `ResultSet`.
         """
-
-        safe_config = sanitize_json(config)
-        config_json = json.dumps(safe_config, indent=4)
-        config_from_json = json.loads(config_json)
-
-        def _number_format_fn(x, significant_digits, number_format_notation):
-            return str(round(x, significant_digits))
-
-        if deep:
-            try:
-                from deepdiff import DeepDiff
-
-                for result in self.results_:
-                    diff = DeepDiff(
-                        result.get_config(),
-                        config_from_json,
-                        ignore_nan_inequality=True,
-                        ignore_order=True,
-                        ignore_numeric_type_changes=True,
-                        significant_digits=6,
-                        number_to_string_func=_number_format_fn,
-                    )
-                    if diff == {}:
-                        return result
-            except ImportError:
-                raise ImportError(
-                    "deepdiff is required to use deep comparison of configs"
-                )
-        else:
-            for result in self.results_:
-                if result.get_config() == config_from_json:
-                    return result
-        return None
-
-    def __iter__(self):
-        return iter(self.results_)
+        return iter(self.results_.values())
 
     def __len__(self):
         return len(self.results_)
 
-    def __getitem__(self, idx):
-        return self.results_[idx]
+    def __getitem__(self, key: Union[str, dict, Result]):
+        """Gets an item from the `ResultSet` by its key.
+
+        The key can be one of:
+        - a string: the config dict of the result transformed to string,
+        - a dict: the config dict of the result,
+        - a `Result` object.
+
+        If the key is a string, it is employed as the key to search in the
+        `ResultSet`. If the key is a dict, it is json sanitized and transformed to
+        string to be used as the key. If the key is a `Result` object, its config is
+        sanitized and transformed to string to be used as the key.
+
+        Parameters
+        ----------
+        key : Union[str, dict, Result]
+            The key to search in the `ResultSet`.
+
+        Returns
+        -------
+        result : `Result`
+            The `Result` object that corresponds to the key.
+        """
+
+        if isinstance(key, str):
+            return self.results_[key]
+        elif isinstance(key, dict):
+            return self.results_[str(sanitize_json(key))]
+        elif isinstance(key, Result):
+            return self.results_[str(sanitize_json(key.config))]
+        else:
+            raise TypeError(
+                f"Expected str, dict or Result, got {type(key).__name__}",
+            )
 
     def __str__(self):
         return (
@@ -347,7 +437,7 @@ class ResultFolder(ResultSet):
     """
 
     base_path: Path
-    results_: list[Result]
+    results_: dict[dict, Result]
 
     def __init__(self, base_path):
         self.base_path = Path(base_path)
@@ -376,7 +466,7 @@ class ResultFolder(ResultSet):
         >>> rf = ResultFolder("./results")
         """
 
-        self.results_ = []
+        self.results_ = {}
 
         json_files = list(self.base_path.rglob("*.json"))
         pkl_files = list(self.base_path.rglob("*.pkl"))
@@ -395,4 +485,4 @@ class ResultFolder(ResultSet):
 
         for path in json_files:
             result = Result.load(self.base_path, path.stem)
-            self.results_.append(result)
+            self.results_[str(sanitize_json(result.config))] = result

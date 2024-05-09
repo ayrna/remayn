@@ -54,6 +54,7 @@ def result_set(result_list):
 def test_result_set_init(result_set, result_list):
     assert len(result_set) == 100
 
-    assert result_set.results_ == result_list
-    for r1, r2 in zip(result_set, result_list):
-        assert r1 == r2
+    for r in result_list:
+        assert r in result_set
+        assert result_set.contains(r)
+        assert result_set[r.config] == r

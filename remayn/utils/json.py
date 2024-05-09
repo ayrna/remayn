@@ -41,7 +41,7 @@ def sanitize_json(data, accept_default_str=True):
 
     if data is None:
         return None
-    elif isinstance(data, (int, float, str, bool)):
+    elif isinstance(data, (int, float, str, bool, str)):
         return data
     elif isinstance(data, np.ndarray):
         return data.tolist()
