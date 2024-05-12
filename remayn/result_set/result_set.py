@@ -20,14 +20,14 @@ class ResultSet:
 
     Attributes
     ----------
-    results_ : dict[dict, Result]
+    results_ : dict[str, Result]
         Dictionary that contains the config of the experiment as the key and the
         `Result` object as the value.
     """
 
-    results_: dict[dict, Result]
+    results_: dict[str, Result]
 
-    def __init__(self, results: Union[list[Result], set[Result], dict[dict, Result]]):
+    def __init__(self, results: Union[list[Result], set[Result], dict[str, Result]]):
         """Creates a `ResultSet` object.
         It can be initialised from a list, a set or a dictionary:
         - If a list or a set is provided, the config of the `Result` objects will be used
@@ -37,7 +37,7 @@ class ResultSet:
 
         Parameters
         ----------
-        results : Union[list[Result], set[Result], dict[dict, Result]]
+        results : Union[list[Result], set[Result], dict[str, Result]]
             The `Result` objects to store in the `ResultSet`.
 
         Raises
@@ -141,6 +141,8 @@ class ResultSet:
         include_val: bool = False,
         best_params_columns: list[str] = [],
         n_jobs: int = -1,
+        config_columns_prefix: str = "config_",
+        best_params_columns_prefix: str = "best_",
     ):
         """Creates a pandas DataFrame that contains all the results stored in this
         ResultSet. The DataFrame will contain the columns specified in config_columns,
@@ -152,7 +154,7 @@ class ResultSet:
 
         Parameters
         ----------
-        config_columns : list of str, optional, default=[]
+        config_columns : list[str], optional, default=[]
             List of columns from the config to include in the dataframe.
         filter_fn : Callable[[ResultData], bool], optional, default=lambda result: True
             Function to filter the results to include in the dataframe. If it returns
@@ -171,7 +173,7 @@ class ResultSet:
             Whether to include the metrics computed on the train set.
         include_val : bool, optional, default=False
             Whether to include the metrics computed on the validation set.
-        best_params_columns : list of str, optional, default=[]
+        best_params_columns : list[str], optional, default=[]
             List of columns from the best_params list to include in the dataframe.
         n_jobs : int, optional, default=-1
             The number of jobs to run in parallel (must be > 0). If -1, all CPUs are used.
@@ -187,6 +189,12 @@ class ResultSet:
             with parallel_backend("loky", n_jobs=2):
                 results = rs.get_dataframe(...)
             ```
+        config_columns_prefix : str, optional, default='config_'
+            The prefix to add to the config columns. If '', no prefix is added. Note
+            that using an empty prefix can result in column name conflicts.
+        best_params_columns_prefix : str, optional, default='best_'
+            The prefix to add to the best_params columns. If '', no prefix is added. Note
+            that using an empty prefix can result in column name conflicts.
 
         Returns
         -------
@@ -230,7 +238,7 @@ class ResultSet:
                     include_val,
                     best_params_columns,
                 )
-                for result in self.results_
+                for result in self
                 if filter_fn(result)
             ]
 
@@ -245,7 +253,7 @@ class ResultSet:
                     or []
                 )
         else:
-            for result in self.results_:
+            for result in self:
                 if filter_fn(result):
                     data.append(
                         get_row_from_result(
@@ -385,7 +393,7 @@ class ResultFolder(ResultSet):
     """
 
     base_path: Path
-    results_: dict[dict, Result]
+    results_: dict[str, Result]
 
     def __init__(self, base_path):
         self.base_path = Path(base_path)
@@ -433,4 +441,5 @@ class ResultFolder(ResultSet):
 
         for path in json_files:
             result = Result.load(self.base_path, path.stem)
-            self.results_[str(sanitize_json(result.config))] = result
+            key = str(sanitize_json(result.config))
+            self.results_[key] = result

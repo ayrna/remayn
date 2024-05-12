@@ -1,4 +1,5 @@
-from typing import Callable
+import warnings
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -7,8 +8,8 @@ from ..utils import get_deep_item_from_dict
 
 
 def get_metric_columns_values(
-    targets: np.ndarray,
-    predictions: np.ndarray,
+    targets: Optional[np.ndarray],
+    predictions: Optional[np.ndarray],
     prefix: str,
     metrics_fn: Callable[[np.ndarray, np.ndarray], dict[str, float]],
 ) -> dict[str, float]:
@@ -40,7 +41,7 @@ def get_metric_columns_values(
         metrics = metrics_fn(targets, predictions)
         row = {f"{prefix}{column}": value for column, value in metrics.items()}
     else:
-        row = {f"{prefix}{column}": None for column in metrics.keys()}
+        row = {}
 
     return row
 
@@ -52,6 +53,8 @@ def get_row_from_result(
     include_train: bool = False,
     include_val: bool = False,
     best_params_columns: list[str] = [],
+    config_columns_prefix: str = "config_",
+    best_params_columns_prefix: str = "best_",
 ) -> dict[str, float]:
     """Create a row with the information of a `Result`, which can be included in the
     pandas DataFrame of a `ResultSet`. The row contains the configuration columns
@@ -76,6 +79,10 @@ def get_row_from_result(
         Whether to include the validation metrics.
     best_params_columns : list[str], default=[]
         The names of the columns to include from the best parameters.
+    config_columns_prefix : str, default="config_"
+        The prefix to add to the configuration columns.
+    best_params_columns_prefix : str, default="best_"
+        The prefix to add to the best parameters columns.
 
     Returns
     -------
@@ -84,20 +91,37 @@ def get_row_from_result(
         column and the value is the corresponding value.
     """
 
-    targets = result.get_data().targets
-    predictions = result.get_data().predictions
-    time = result.get_data().time
+    data = result.get_data()
+    if data is None:
+        warnings.warn(
+            "The result does not contain data. Skipping this result.", UserWarning
+        )
+        return {}
+
+    if not config_columns_prefix:
+        config_columns_prefix = ""
+
+    if not best_params_columns_prefix:
+        best_params_columns_prefix = ""
+
+    targets = data.targets
+    predictions = data.predictions
+    time = data.time
 
     test_metrics = metrics_fn(targets, predictions)
 
     # Create row dict with config columns, best params columns and test metrics
     row = {
         **{
-            column: get_deep_item_from_dict(result.get_config(), column)
+            f"{config_columns_prefix}{column}": get_deep_item_from_dict(
+                result.config, column
+            )
             for column in config_columns
         },
         **{
-            column: get_deep_item_from_dict(result.get_data().best_params, column)
+            f"{best_params_columns_prefix}{column}": get_deep_item_from_dict(
+                data.best_params, column
+            )
             for column in best_params_columns
         },
         **test_metrics,
@@ -105,8 +129,8 @@ def get_row_from_result(
 
     if include_train:
         train_metrics_row = get_metric_columns_values(
-            result.get_data().train_targets,
-            result.get_data().train_predictions,
+            data.train_targets,
+            data.train_predictions,
             "train_",
             metrics_fn,
         )
@@ -114,8 +138,8 @@ def get_row_from_result(
 
     if include_val:
         val_metrics_row = get_metric_columns_values(
-            result.get_data().val_targets,
-            result.get_data().val_predictions,
+            data.val_targets,
+            data.val_predictions,
             "val_",
             metrics_fn,
         )
@@ -124,12 +148,12 @@ def get_row_from_result(
     row["time"] = time
 
     # Add best epoch and loss value if histories are available
-    if result.get_data().train_history is not None:
-        row["best_train_epoch"] = result.get_data().train_history.argmin() + 1
-        row["best_train_loss"] = result.get_data().train_history.min()
+    if data.train_history is not None:
+        row["best_train_epoch"] = data.train_history.argmin() + 1
+        row["best_train_loss"] = data.train_history.min()
 
-    if result.get_data().val_history is not None:
-        row["best_val_epoch"] = result.get_data().val_history.argmin() + 1
-        row["best_val_loss"] = result.get_data().val_history.min()
+    if data.val_history is not None:
+        row["best_val_epoch"] = data.val_history.argmin() + 1
+        row["best_val_loss"] = data.val_history.min()
 
     return row
