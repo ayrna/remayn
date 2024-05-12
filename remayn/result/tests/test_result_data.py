@@ -63,16 +63,78 @@ def test_pickle_unpickle(result_data, tmp_path):
 
 def test_validation():
     with pytest.raises(TypeError):
-        ResultData()  # type: ignore
+        ResultData()
 
     with pytest.raises(TypeError):
-        ResultData(targets=random_targets())  # type: ignore
+        ResultData(targets=random_targets())
 
     with pytest.raises(TypeError):
-        ResultData(predictions=random_predictions())  # type: ignore
+        ResultData(predictions=random_predictions())
 
     with pytest.raises(TypeError):
-        ResultData(targets=None, predictions=None)  # type: ignore
+        ResultData(targets=None, predictions=None)
 
     with pytest.raises(TypeError):
-        ResultData(targets=[], predictions=[])  # type: ignore
+        ResultData(targets=[], predictions=[])
+
+    with pytest.raises(TypeError):
+        ResultData(targets=random_targets(), predictions=[])
+
+    with pytest.raises(TypeError):
+        ResultData(targets=[], predictions=random_predictions())
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            train_targets=[],
+        )
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            train_predictions=[],
+        )
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            val_targets=[],
+        )
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            val_predictions=[],
+        )
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            time="time",
+        )
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            train_history=[],
+        )
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            val_history=[],
+        )
+
+    with pytest.raises(TypeError):
+        ResultData(
+            targets=random_targets(),
+            predictions=random_predictions(),
+            best_params="best_params",
+        )

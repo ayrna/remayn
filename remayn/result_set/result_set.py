@@ -1,5 +1,4 @@
 import importlib.util
-import json
 import warnings
 from pathlib import Path
 from typing import Callable, Union
@@ -8,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from ..result import Result
-from ..utils import sanitize_json
+from ..utils import dict_contains_dict, sanitize_json
 from .utils import get_row_from_result
 
 
@@ -49,9 +48,13 @@ class ResultSet:
         if isinstance(results, dict):
             self.results_ = results
         elif isinstance(results, (list, set)):
-            self.results_ = {
-                str(sanitize_json(result.config)): result for result in results
-            }
+            self.results_ = {}
+            for result in results:
+                if not isinstance(result, Result):
+                    raise TypeError(
+                        f"Expected Result, got {type(result).__name__}",
+                    )
+                self.results_[str(sanitize_json(result.config))] = result
         else:
             raise TypeError(
                 f"Expected list, set or dict, got {type(results).__name__}",
@@ -95,7 +98,7 @@ class ResultSet:
                 f"Expected str, dict or Result, got {type(result).__name__}",
             )
 
-    def filter(self, config: dict) -> "ResultSet":
+    def filter_by_config(self, config: dict) -> "ResultSet":
         """Filters the results by config.
 
         Parameters
@@ -110,22 +113,26 @@ class ResultSet:
         -------
         results : ResultSet
             A `ResultSet` that contains only the results that match the given config.
+
+        Raises
+        ------
+        TypeError
+            If the `config` parameter is not a dict.
         """
 
+        if not isinstance(config, dict):
+            raise TypeError(
+                f"Expected dict, got {type(config).__name__}",
+            )
+
         safe_config = sanitize_json(config)
-        config_json = json.dumps(safe_config, indent=4)
-        config_from_json = json.loads(config_json)
+        # config_json = json.dumps(safe_config, indent=4)
+        # config_from_json = json.loads(config_json)
 
         filtered_results = []
-        for result in self.results_:
-            config = result.config
-            matches = True
-            for k, v in config_from_json.items():
-                if k not in config.keys() or config[k] != v:
-                    matches = False
-                    break
-
-            if matches:
+        for result in self:
+            config = sanitize_json(result.config)
+            if dict_contains_dict(config, safe_config):
                 filtered_results.append(result)
 
         return ResultSet(filtered_results)
@@ -283,7 +290,17 @@ class ResultSet:
         ----------
         result : `Result`
             The `Result` object to add.
+
+        Raises
+        ------
+        TypeError
+            If the `result` parameter is not a `Result`.
         """
+
+        if not isinstance(result, Result):
+            raise TypeError(
+                f"Expected Result, got {type(result).__name__}",
+            )
 
         self.results_[str(sanitize_json(result.config))] = result
 
@@ -431,10 +448,10 @@ class ResultFolder(ResultSet):
         if len(json_files) != len(pkl_files):
             for json_file in json_files:
                 if json_file.with_suffix(".pkl") not in pkl_files:
-                    raise ValueError(
+                    raise FileNotFoundError(
                         f"Could not find pkl file for json file {json_file}",
                     )
-            raise ValueError(
+            raise FileNotFoundError(
                 f"Number of json files ({len(json_files)}) does not match"
                 f" number of pkl files ({len(pkl_files)})",
             )

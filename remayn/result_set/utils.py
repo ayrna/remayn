@@ -1,4 +1,3 @@
-import warnings
 from typing import Callable, Optional
 
 import numpy as np
@@ -36,6 +35,12 @@ def get_metric_columns_values(
         The row with the metrics values. The keys represent the name of the columns and
         the values are the metrics values.
     """
+
+    if isinstance(targets, list):
+        targets = np.array(targets)
+
+    if isinstance(predictions, list):
+        predictions = np.array(predictions)
 
     if targets is not None and predictions is not None:
         metrics = metrics_fn(targets, predictions)
@@ -92,11 +97,6 @@ def get_row_from_result(
     """
 
     data = result.get_data()
-    if data is None:
-        warnings.warn(
-            "The result does not contain data. Skipping this result.", UserWarning
-        )
-        return {}
 
     if not config_columns_prefix:
         config_columns_prefix = ""

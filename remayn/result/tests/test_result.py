@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 
 import numpy as np
@@ -168,6 +169,10 @@ def test_load_data(result, saved_result, complete_result, result_path, result_co
     assert (data.val_history == np.array([1, 2, 3])).all()
     assert data.best_params == {"bs": 32, "estimator_config": {"lr": 1e-3}}
 
+    complete_result.data_md5sum_ = "wrong_md5sum"
+    with pytest.raises(ValueError):
+        complete_result.load_data(force=True)
+
 
 def test_delete_result(result, saved_result, complete_result, result_path):
     # result object (not saved)
@@ -255,6 +260,26 @@ def test_load_result(saved_result, complete_result, result_path, result_config):
     data_path = result_path / f"{complete_result.id}.pkl"
     assert info_path.exists()
     assert data_path.exists()
+
+    complete_result.get_info_path().unlink()
+    with pytest.raises(FileNotFoundError):
+        Result.load(result_path, complete_result.id)
+
+    complete_result.get_info_path().write_text("wrong")
+    with pytest.raises(json.JSONDecodeError):
+        Result.load(result_path, complete_result.id)
+
+    complete_result.get_info_path().write_text(json.dumps({"id": "wrong"}))
+    with pytest.raises(ValueError, match="config"):
+        Result.load(result_path, complete_result.id)
+
+    complete_result.get_info_path().write_text(
+        json.dumps(
+            {"config": {"bs": [32, 64, 128]}},
+        )
+    )
+    with pytest.raises(ValueError, match="md5"):
+        Result.load(result_path, complete_result.id)
 
 
 def test_save_result(saved_result, complete_result, result_path, result_config):
@@ -389,3 +414,38 @@ def test_result_comparison(result, saved_result, complete_result):
 
     # It can be compared directly
     assert complete_result.get_data() != complete_result2.get_data()
+
+
+def test_result_str_repr(result, saved_result, complete_result):
+    assert "Results info path" in str(result)
+    assert "not loaded" in str(result)
+    assert repr(result) == str(result)
+
+    assert "Results info path" in str(saved_result)
+    assert "not loaded" in str(saved_result)
+    assert repr(saved_result) == str(saved_result)
+
+    assert "Results info path" in str(complete_result)
+    assert "data file" in str(complete_result)
+    assert repr(complete_result) == str(complete_result)
+
+
+def test_result_compare_config(result, saved_result, complete_result):
+    assert result.compare_config(saved_result)
+    assert not result.compare_config(complete_result)
+    assert not saved_result.compare_config(complete_result)
+
+    assert result.compare_config(result)
+    assert saved_result.compare_config(saved_result)
+    assert complete_result.compare_config(complete_result)
+
+    complete_result2 = deepcopy(complete_result)
+    assert complete_result.compare_config(complete_result2)
+
+    complete_result2.config = {"bs": [32, 64, 128]}
+    assert not complete_result.compare_config(complete_result2)
+    complete_result2.config = complete_result.config
+    assert complete_result.compare_config(complete_result2)
+
+    with pytest.raises(TypeError):
+        complete_result.compare_config(1)

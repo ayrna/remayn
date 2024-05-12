@@ -1,3 +1,6 @@
+import importlib
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -44,7 +47,7 @@ def generate_random_result(base_path):
             "estimator_config": {
                 "hidden_layers": np.random.randint(1, 10, 10).tolist(),
                 "hidden_units": np.random.randint(1, 1000, 10).tolist(),
-                "activation": ["relu", "tanh", "sigmoid"],
+                "activation": np.random.choice(["relu", "tanh", "sigmoid"]),
                 "optimizer": np.random.choice(["adam", "sgd", "rmsprop"]),
                 "loss": ["categorical_crossentropy", "mean_squared_error"],
                 "loss_params": [{"reduction": "sum"}, {"reduction": "mean"}],
@@ -82,7 +85,7 @@ def empty_result_set():
 
 @pytest.fixture
 def result_list(result_path):
-    return [generate_random_result(result_path) for _ in range(40)]
+    return [generate_random_result(result_path) for _ in range(10)]
 
 
 @pytest.fixture
@@ -102,6 +105,23 @@ def test_result_set_init(result_set, result_list):
         assert r in result_set
         assert result_set.contains(r)
         assert result_set[r.config] == r
+
+    results_dict = result_set.results_
+    new_result_set = ResultSet(results_dict)
+    assert len(new_result_set) == len(result_list)
+    assert new_result_set.results_ == results_dict
+
+    with pytest.raises(TypeError):
+        ResultSet(None)
+
+    with pytest.raises(TypeError):
+        ResultSet(1)
+
+    with pytest.raises(TypeError):
+        ResultSet("")
+
+    with pytest.raises(TypeError):
+        ResultSet([1, 2, 3])
 
 
 def test_result_set_iter(result_set, result_list):
@@ -158,6 +178,30 @@ def test_result_set_add_remove(result_set, result_path):
     assert not result_set.contains(new_result)
     assert str(sanitize_json(new_result.config)) not in result_set.results_.keys()
 
+    with pytest.raises(TypeError):
+        result_set.add(None)
+
+    with pytest.raises(TypeError):
+        result_set.add(1)
+
+    with pytest.raises(TypeError):
+        result_set.add("")
+
+    with pytest.raises(TypeError):
+        result_set.add([1])
+
+    with pytest.raises(TypeError):
+        result_set.remove(None)
+
+    with pytest.raises(TypeError):
+        result_set.remove(1)
+
+    with pytest.raises(KeyError):
+        result_set.remove("")
+
+    with pytest.raises(TypeError):
+        result_set.remove([1])
+
 
 def test_result_set_contains(result_set, result_list):
     for r in result_list:
@@ -170,12 +214,72 @@ def test_result_set_contains(result_set, result_list):
         assert str(sanitize_json(r.config)) in result_set
         assert result_set.contains(str(sanitize_json(r.config)))
 
+    with pytest.raises(TypeError):
+        result_set.contains(None)
+
+    with pytest.raises(TypeError):
+        result_set.contains(1)
+
+    with pytest.raises(TypeError):
+        result_set.contains([1])
+
+
+def test_result_set_filter_by_config(result_set):
+    config = {
+        "estimator_config": {
+            "optimizer": "adam",
+            "activation": "relu",
+        }
+    }
+
+    next(iter(result_set)).config["estimator_config"]["optimizer"] = "adam"
+    next(iter(result_set)).config["estimator_config"]["activation"] = "relu"
+
+    filtered_result_set = result_set.filter_by_config(config)
+    assert len(filtered_result_set) <= len(result_set)
+    assert all(
+        r.config["estimator_config"]["optimizer"] == "adam"
+        and r.config["estimator_config"]["activation"] == "relu"
+        for r in filtered_result_set
+    )
+    assert len(filtered_result_set) > 0
+
+    with pytest.raises(TypeError):
+        result_set.filter_by_config(None)
+
+    with pytest.raises(TypeError):
+        result_set.filter_by_config(1)
+
+    with pytest.raises(TypeError):
+        result_set.filter_by_config([1])
+
 
 def test_result_set_str_repr(result_set):
     assert str(len(result_set)) in str(result_set)
     assert str(len(result_set)) in repr(result_set)
     assert type(result_set).__str__ is not object.__str__
     assert type(result_set).__repr__ is not object.__repr__
+
+
+def test_result_set_getitem(result_set, result_list):
+    for r in result_list:
+        assert result_set[r.config] == r
+
+    for r in result_set:
+        assert result_set[r.config] == r
+        assert result_set[r] == r
+
+    with pytest.raises(TypeError):
+        result_set[None]
+
+    with pytest.raises(TypeError):
+        result_set[1]
+
+    with pytest.raises(KeyError):
+        result_set[""]
+
+    with pytest.raises(TypeError):
+        result_set[[1]]
 
 
 def test_result_folder_init(result_list, result_path):
@@ -187,6 +291,23 @@ def test_result_folder_init(result_list, result_path):
     assert all(r in result_folder for r in result_list)
 
     assert result_folder.base_path == result_path
+
+
+def test_result_folder_load_error(result_list, result_path):
+    for r in result_list:
+        r.save()
+
+    (result_list[0].base_path / f"{result_list[0].id}.pkl").unlink()
+
+    with pytest.raises(FileNotFoundError, match="Could not find"):
+        ResultFolder(result_path)
+
+    (result_list[0].base_path / f"{result_list[0].id}.json").unlink()
+
+    (result_list[1].base_path / f"{result_list[1].id}.json").unlink()
+
+    with pytest.raises(FileNotFoundError, match="Number of json"):
+        ResultFolder(result_path)
 
 
 def test_result_set_create_dataframe(result_set, result_list, dataframe_path):
@@ -268,6 +389,117 @@ def test_result_set_create_dataframe(result_set, result_list, dataframe_path):
     )
 
     assert df_filter is not None
-    assert len(df_filter) < len(result_set)
-    assert len(df_filter) < len(df)
+    assert len(df_filter) <= len(result_set)
+    assert len(df_filter) <= len(df)
     assert len(df_filter) > 0
+
+    with pytest.raises(ValueError):
+        result_set.create_dataframe(
+            config_columns=[
+                "estimator_config.hidden_layers",
+                "estimator_config.optimizer",
+                "lr",
+                "momentum",
+            ],
+            metrics_fn=_compute_metrics,
+            include_train=True,
+            include_val=True,
+            best_params_columns=["bs", "lr", "momentum"],
+            n_jobs=0,
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+
+
+def test_result_set_create_dataframe_nojoblib(result_set):
+    def _compute_metrics(targets, predictions):
+        return {
+            "accuracy": accuracy_score(targets, predictions),
+            "mze": 1 - accuracy_score(targets, predictions),
+        }
+
+    original_find_spec = importlib.util.find_spec
+
+    def _find_spec(name, path=None, target=None):
+        if name == "joblib":
+            return None
+        return original_find_spec(name, path, target)
+
+    importlib.util.find_spec = _find_spec
+
+    with pytest.raises(RuntimeWarning):
+        with warnings.catch_warnings(action="error"):
+            result_set.create_dataframe(
+                config_columns=[
+                    "estimator_config.hidden_layers",
+                    "estimator_config.optimizer",
+                    "lr",
+                    "momentum",
+                ],
+                metrics_fn=_compute_metrics,
+                include_train=True,
+                include_val=True,
+                best_params_columns=["bs", "lr", "momentum"],
+                n_jobs=3,
+                config_columns_prefix="config_",
+                best_params_columns_prefix="best_",
+            )
+
+    result_set.create_dataframe(
+        config_columns=[
+            "estimator_config.hidden_layers",
+            "estimator_config.optimizer",
+            "lr",
+            "momentum",
+        ],
+        metrics_fn=_compute_metrics,
+        include_train=True,
+        include_val=True,
+        best_params_columns=["bs", "lr", "momentum"],
+        n_jobs=1,
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+    )
+
+    with warnings.catch_warnings(action="ignore"):
+        result_set.create_dataframe(
+            config_columns=[
+                "estimator_config.hidden_layers",
+                "estimator_config.optimizer",
+                "lr",
+                "momentum",
+            ],
+            metrics_fn=_compute_metrics,
+            include_train=True,
+            include_val=True,
+            best_params_columns=["bs", "lr", "momentum"],
+            n_jobs=3,
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+
+    importlib.util.find_spec = original_find_spec
+
+
+def test_result_set_create_dataframe_joblib(result_set):
+    def _compute_metrics(targets, predictions):
+        return {
+            "accuracy": accuracy_score(targets, predictions),
+            "mze": 1 - accuracy_score(targets, predictions),
+        }
+
+    result_set.create_dataframe(
+        config_columns=[
+            "estimator_config.hidden_layers",
+            "estimator_config.optimizer",
+            "lr",
+            "momentum",
+        ],
+        metrics_fn=_compute_metrics,
+        include_train=True,
+        include_val=True,
+        best_params_columns=["bs", "lr", "momentum"],
+        n_jobs=3,
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+    )

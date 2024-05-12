@@ -105,7 +105,7 @@ class Result:
         return self.base_path / f"{self.id}.json"
 
     def __str__(self):
-        s = f"Config: {json.dumps(self.config, indent=4)}"
+        s = f"Config: {json.dumps(sanitize_json(self.config), indent=4)}"
         if self.data_ is None:
             s += f"""
 Results info path: {self.get_info_path()} (data not loaded)
@@ -132,14 +132,26 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
     def __repr__(self):
         return self.__str__()
 
-    def __eq__(self, other):
-        if not isinstance(other, Result):
+    def __eq__(self, other: Union["Result", dict]):
+        """Compares two `Result` objects considering only their config.
+        It returns False if the type of the other object is not a `Result` or a dict.
+
+        Parameters
+        ----------
+        other: Union[Result, dict]
+            The other Result object or a dictionary containing the config of the
+            other experiment.
+
+        Returns
+        -------
+        bool
+            True if the configs are equal and False otherwise.
+        """
+
+        if not isinstance(other, (Result, dict)):
             return False
 
-        return str(self.config) == str(other.config)
-
-    def __hash__(self):
-        return hash(str(self.config))
+        return self.compare_config(other)
 
     def compare_config(self, other: Union["Result", dict]) -> bool:
         """Compare the config of this Result with the config of `other` Result. It
@@ -162,7 +174,7 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         elif isinstance(other, dict):
             return sanitize_json(self.config) == sanitize_json(other)
         else:
-            raise ValueError(
+            raise TypeError(
                 f"Expected a Result or a dict, but got {type(other)} instead."
             )
 
@@ -409,10 +421,6 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Experiment information file {info_path} does not exist."
-            )
-        except json.JSONDecodeError:
-            raise ValueError(
-                f"Experiment information file {info_path} is not a valid json file."
             )
 
         if "config" not in info:
