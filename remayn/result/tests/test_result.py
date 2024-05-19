@@ -25,6 +25,9 @@ class TestEstimator:
     def predict(self, X):
         pass
 
+    def __eq__(self, other):
+        return isinstance(other, TestEstimator) and self.lr == other.lr
+
 
 class WrongEstimator:
     def __init__(self, lr):
@@ -81,6 +84,7 @@ def complete_result(result_path, result_config):
         train_history=np.array([1, 2, 3]),
         val_history=np.array([1, 2, 3]),
         best_params={"bs": 32, "estimator_config": {"lr": 1e-3}},
+        best_model=TestEstimator(lr=1e-3),
     ).save()
 
 
@@ -136,6 +140,7 @@ def test_make_result(complete_result, result_path, result_config):
     assert (data.train_history == np.array([1, 2, 3])).all()
     assert (data.val_history == np.array([1, 2, 3])).all()
     assert data.best_params == {"bs": 32, "estimator_config": {"lr": 1e-3}}
+    assert data.best_model == TestEstimator(lr=1e-3)
 
     info_path = result_path / f"{complete_result.id}.json"
     data_path = result_path / f"{complete_result.id}.pkl"
@@ -168,6 +173,7 @@ def test_load_data(result, saved_result, complete_result, result_path, result_co
     assert (data.train_history == np.array([1, 2, 3])).all()
     assert (data.val_history == np.array([1, 2, 3])).all()
     assert data.best_params == {"bs": 32, "estimator_config": {"lr": 1e-3}}
+    assert data.best_model == TestEstimator(lr=1e-3)
 
     complete_result.data_md5sum_ = "wrong_md5sum"
     with pytest.raises(ValueError):
@@ -255,6 +261,7 @@ def test_load_result(saved_result, complete_result, result_path, result_config):
     assert (data.train_history == np.array([1, 2, 3])).all()
     assert (data.val_history == np.array([1, 2, 3])).all()
     assert data.best_params == {"bs": 32, "estimator_config": {"lr": 1e-3}}
+    assert data.best_model == TestEstimator(lr=1e-3)
 
     info_path = result_path / f"{complete_result.id}.json"
     data_path = result_path / f"{complete_result.id}.pkl"
@@ -305,6 +312,7 @@ def test_save_result(saved_result, complete_result, result_path, result_config):
             train_history=np.array([1, 2, 3]),
             val_history=np.array([1, 2, 3]),
             best_params={"bs": 32, "estimator_config": {"lr": 1e-3}},
+            best_model=TestEstimator(lr=1e-3),
         )
     )
     loaded_result.save()
@@ -322,6 +330,7 @@ def test_save_result(saved_result, complete_result, result_path, result_config):
     assert (data.train_history == np.array([1, 2, 3])).all()
     assert (data.val_history == np.array([1, 2, 3])).all()
     assert data.best_params == {"bs": 32, "estimator_config": {"lr": 1e-3}}
+    assert data.best_model == TestEstimator(lr=1e-3)
 
     # complete_result
     complete_result.save()
@@ -342,6 +351,8 @@ def test_save_result(saved_result, complete_result, result_path, result_config):
     assert data.time == 1.0
     assert (data.train_history == np.array([1, 2, 3])).all()
     assert (data.val_history == np.array([1, 2, 3])).all()
+    assert data.best_params == {"bs": 32, "estimator_config": {"lr": 1e-3}}
+    assert data.best_model == TestEstimator(lr=1e-3)
 
     loaded_result.set_data(
         ResultData(
@@ -355,6 +366,7 @@ def test_save_result(saved_result, complete_result, result_path, result_config):
             train_history=np.array([3, 5, 3]),
             val_history=np.array([2, 2, 3]),
             best_params={"bs": 64, "estimator_config": {"lr": 1e-5}, "new": 1},
+            best_model=TestEstimator(lr=1e-5),
         )
     )
     loaded_result.save()
@@ -372,6 +384,7 @@ def test_save_result(saved_result, complete_result, result_path, result_config):
     assert (data.train_history == np.array([3, 5, 3])).all()
     assert (data.val_history == np.array([2, 2, 3])).all()
     assert data.best_params == {"bs": 64, "estimator_config": {"lr": 1e-5}, "new": 1}
+    assert data.best_model == TestEstimator(lr=1e-5)
 
     # try to assign and save a config with the WrongEstimator
     complete_result.config["estimator"] = WrongEstimator(lr=1e-3)

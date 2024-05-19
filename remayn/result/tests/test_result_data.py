@@ -6,6 +6,11 @@ import pytest
 from remayn.result import ResultData
 
 
+def ExampleModel():
+    def __eq__(self, other):
+        return True
+
+
 def random_targets():
     return np.random.randint(0, 10, 500)
 
@@ -31,6 +36,7 @@ def result_data():
         train_history=random_history(),
         val_history=random_history(),
         best_params={"lr": 1e-3, "bs": 256, "alpha": 0.5, "beta": 1.2},
+        best_model=ExampleModel(),
     )
 
 
@@ -55,6 +61,7 @@ def test_pickle_unpickle(result_data, tmp_path):
     assert np.all(data.train_history == result_data.train_history)
     assert np.all(data.val_history == result_data.val_history)
     assert data.best_params == result_data.best_params
+    assert data.best_model == result_data.best_model
     assert data == result_data
 
     data.predictions = random_predictions()

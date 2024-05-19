@@ -456,6 +456,7 @@ def make_result(
     train_history: Optional[np.ndarray] = None,
     val_history: Optional[np.ndarray] = None,
     best_params: Optional[dict] = None,
+    best_model: Optional[object] = None,
 ):
     """Helper function to create a `Result` object with the given data.
     It creates a `Result` object and the associated `ResultData`. The `Result` and
@@ -497,6 +498,8 @@ def make_result(
         used in case that the experiment employs a cross-validation process. It can be
         left as None if the experiment does not use a cross-validation process or the
         cross-validation process is splitted in different experiments.
+    best_model: Optional[object], optional, default=None
+        Best model found during the experiment.
 
     Returns
     -------
@@ -530,6 +533,7 @@ def make_result(
             train_history=train_history,
             val_history=val_history,
             best_params=best_params,
+            best_model=best_model,
         )
     )
 

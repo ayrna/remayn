@@ -32,6 +32,8 @@ class ResultData:
     best_params: Optional[dict], optional, default=None
         Dictionary of the best parameters found during the experiment.
         Can be used in case that the experiment employes a cross-validation process.
+    best_model: Optional[object], optional, default=None
+        Best model found during the experiment.
     """
 
     def __init__(
@@ -47,6 +49,7 @@ class ResultData:
         train_history: Optional[np.ndarray] = None,
         val_history: Optional[np.ndarray] = None,
         best_params: Optional[dict] = None,
+        best_model: Optional[object] = None,
     ):
         if not isinstance(targets, np.ndarray):
             raise TypeError("targets must be a numpy array")
@@ -81,6 +84,7 @@ class ResultData:
         self.train_history = train_history
         self.val_history = val_history
         self.best_params = best_params
+        self.best_model = best_model
 
     def __eq__(self, other: "ResultData"):
         return (
@@ -94,4 +98,5 @@ class ResultData:
             and np.all(self.train_history == other.train_history)
             and np.all(self.val_history == other.val_history)
             and self.best_params == other.best_params
+            and self.best_model == other.best_model
         )
