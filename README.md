@@ -1,7 +1,7 @@
 # REMAYN: REsults MAde easY in pythoN
 
 `remayn` is an open-source Python toolkit focused on results management for machine learning experiments.
-It includes the required functionalities to save the complete results of an experiment, load them, and generate repots.
+It includes the required functionalities to save the complete results of an experiment, load them, and generate reports.
 
 | Overview  |                                                                                                                                          |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------|
