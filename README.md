@@ -12,11 +12,11 @@ It includes the required functionalities to save the complete results of an expe
 
 ### ⚙️ Installation
 
-`remayn v0.1.0` is the last version supported by Python >=3.8.
+`remayn` is supported by Python >=3.8.
 
-The easiest way to install `remayn` is via `pip`, from this main branch of this GitHub repository:
+The easiest way to install `remayn` is via `pip`:
 
-    pip install git+https://github.com/ayrna/remayn.git@main
+    pip install remayn
 
 ### 💾 Saving the results of a experiment
 A new `Result` object can be created using the `make_result` function. Then, the `Result` can be saved to disk by simply calling the `save()` method.
