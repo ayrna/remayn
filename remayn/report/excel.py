@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import pandas as pd
 
@@ -7,7 +7,7 @@ import pandas as pd
 def create_excel_summary_report(
     df: pd.DataFrame,
     destination_path: Union[str, Path],
-    group_columns: list[str],
+    group_columns: List[str],
     *,
     individual_sheet_name: str = "Individual",
     average_sheet_name: str = "Average",
@@ -24,7 +24,7 @@ def create_excel_summary_report(
         The DataFrame to create the report from.
     destination_path : Union[str, Path]
         The path to save the Excel file. It is ignored if `excel_writer` is provided.
-    group_columns : list[str]
+    group_columns : List[str]
         The columns to group the rows by.
     individual_sheet_name : str, optional, default="Individual"
         The name of the sheet for the individual rows.
@@ -67,9 +67,9 @@ def create_excel_summary_report(
 def create_excel_columns_report(
     df: pd.DataFrame,
     destination_path: Union[str, Path],
-    metric_columns: list[str],
+    metric_columns: List[str],
     pivot_index: str,
-    pivot_columns: list[str],
+    pivot_columns: List[str],
     *,
     excel_writer: Optional[pd.ExcelWriter] = None,
 ):
@@ -90,11 +90,11 @@ def create_excel_columns_report(
         The DataFrame to create the report from.
     destination_path : Union[str, Path]
         The path to save the Excel file. It is ignored if `excel_writer` is provided.
-    metric_columns : list[str]
+    metric_columns : List[str]
         The columns to create pivot tables for.
     pivot_index : str
         The column to use as the index of the pivot table.
-    pivot_columns : list[str]
+    pivot_columns : List[str]
         The columns to use as the columns of the pivot table.
     excel_writer : Optional[pd.ExcelWriter], optional, default=None
         A pd.ExcelWriter object that will be used to write the dataframes to an excel

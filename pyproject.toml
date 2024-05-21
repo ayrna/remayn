@@ -20,6 +20,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "pandas",
+    "openpyxl",
 ]
 
 [project.urls]

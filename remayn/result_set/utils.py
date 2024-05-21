@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
 
@@ -10,8 +10,8 @@ def get_metric_columns_values(
     targets: Optional[np.ndarray],
     predictions: Optional[np.ndarray],
     prefix: str,
-    metrics_fn: Callable[[np.ndarray, np.ndarray], dict[str, float]],
-) -> dict[str, float]:
+    metrics_fn: Callable[[np.ndarray, np.ndarray], Dict[str, float]],
+) -> Dict[str, float]:
     """Creates the row with the metrics values for the given targets and predictions.
     The name of each column is determined by appending the name of the metric to the
     given prefix. For example, if adding the training metrics, the prefix could be
@@ -25,13 +25,13 @@ def get_metric_columns_values(
         The predictions.
     prefix : str
         The prefix to add to the column names.
-    metrics_fn : Callable[[np.ndarray, np.ndarray], dict[str, float]]
+    metrics_fn : Callable[[np.ndarray, np.ndarray], Dict[str, float]]
         The function to calculate the metrics. See `ResultSet.get_dataframe` for more
         details.
 
     Returns
     -------
-    row : dict[str, float]
+    row : Dict[str, float]
         The row with the metrics values. The keys represent the name of the columns and
         the values are the metrics values.
     """
@@ -53,14 +53,14 @@ def get_metric_columns_values(
 
 def get_row_from_result(
     result: Result,
-    config_columns: list[str] = [],
+    config_columns: List[str] = [],
     metrics_fn=lambda targets, predictions: {},
     include_train: bool = False,
     include_val: bool = False,
-    best_params_columns: list[str] = [],
+    best_params_columns: List[str] = [],
     config_columns_prefix: str = "config_",
     best_params_columns_prefix: str = "best_",
-) -> dict[str, float]:
+) -> Dict[str, float]:
     """Create a row with the information of a `Result`, which can be included in the
     pandas DataFrame of a `ResultSet`. The row contains the configuration columns
     provided, the best parameters columns provided, the test metrics, and optionally the
@@ -73,16 +73,16 @@ def get_row_from_result(
     ----------
     result : Result
         The `Result` object.
-    config_columns : list[str], default=[]
+    config_columns : List[str], default=[]
         The names of the columns to include from the configuration.
-    metrics_fn : Callable[[np.ndarray, np.ndarray], dict[str, float]],
+    metrics_fn : Callable[[np.ndarray, np.ndarray], Dict[str, float]],
                 default=lambda targets, predictions: {}
         See `ResultSet.get_dataframe` for more details.
     include_train : bool, default=False
         Whether to include the training metrics.
     include_val : bool, default=False
         Whether to include the validation metrics.
-    best_params_columns : list[str], default=[]
+    best_params_columns : List[str], default=[]
         The names of the columns to include from the best parameters.
     config_columns_prefix : str, default="config_"
         The prefix to add to the configuration columns.
@@ -91,7 +91,7 @@ def get_row_from_result(
 
     Returns
     -------
-    row : dict[str, float]
+    row : Dict[str, float]
         The row with the information of the `Result`. Each key represents the name of a
         column and the value is the corresponding value.
     """

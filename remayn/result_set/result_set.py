@@ -1,7 +1,7 @@
 import importlib.util
 import warnings
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -19,14 +19,14 @@ class ResultSet:
 
     Attributes
     ----------
-    results_ : dict[str, Result]
+    results_ : Dict[str, Result]
         Dictionary that contains the config of the experiment as the key and the
         `Result` object as the value.
     """
 
-    results_: dict[str, Result]
+    results_: Dict[str, Result]
 
-    def __init__(self, results: Union[list[Result], set[Result], dict[str, Result]]):
+    def __init__(self, results: Union[List[Result], Set[Result], Dict[str, Result]]):
         """Creates a `ResultSet` object.
         It can be initialised from a list, a set or a dictionary:
         - If a list or a set is provided, the config of the `Result` objects will be used
@@ -36,7 +36,7 @@ class ResultSet:
 
         Parameters
         ----------
-        results : Union[list[Result], set[Result], dict[str, Result]]
+        results : Union[List[Result], Set[Result], Dict[str, Result]]
             The `Result` objects to store in the `ResultSet`.
 
         Raises
@@ -139,14 +139,14 @@ class ResultSet:
 
     def create_dataframe(
         self,
-        config_columns: list[str] = [],
+        config_columns: List[str] = [],
         filter_fn: Callable[[Result], bool] = lambda result: True,
         metrics_fn: Callable[
-            [np.ndarray, np.ndarray], dict[str, float]
+            [np.ndarray, np.ndarray], Dict[str, float]
         ] = lambda targets, predictions: {},
         include_train: bool = False,
         include_val: bool = False,
-        best_params_columns: list[str] = [],
+        best_params_columns: List[str] = [],
         n_jobs: int = -1,
         config_columns_prefix: str = "config_",
         best_params_columns_prefix: str = "best_",
@@ -161,14 +161,14 @@ class ResultSet:
 
         Parameters
         ----------
-        config_columns : list[str], optional, default=[]
+        config_columns : List[str], optional, default=[]
             List of columns from the config to include in the dataframe.
         filter_fn : Callable[[ResultData], bool], optional, default=lambda result: True
             Function to filter the results to include in the dataframe. If it returns
             True, the result row will be included. The function receives a single
             parameter which is the Result object being processed. It must return a
             boolean value.
-        metrics_fn : Callable[[np.ndarray, np.ndarray], dict[str, float]]
+        metrics_fn : Callable[[np.ndarray, np.ndarray], Dict[str, float]]
             Function that computes the metrics from the targets and predictions.
             It receives two numpy arrays, the targets and the predictions, and returns a
             dictionary where the key is the name of the metric and the value is the value
@@ -180,7 +180,7 @@ class ResultSet:
             Whether to include the metrics computed on the train set.
         include_val : bool, optional, default=False
             Whether to include the metrics computed on the validation set.
-        best_params_columns : list[str], optional, default=[]
+        best_params_columns : List[str], optional, default=[]
             List of columns from the best_params list to include in the dataframe.
         n_jobs : int, optional, default=-1
             The number of jobs to run in parallel (must be > 0). If -1, all CPUs are used.
@@ -409,7 +409,7 @@ class ResultFolder(ResultSet):
     """
 
     base_path: Path
-    results_: dict[str, Result]
+    results_: Dict[str, Result]
 
     def __init__(self, base_path):
         self.base_path = Path(base_path)

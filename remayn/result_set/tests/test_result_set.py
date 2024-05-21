@@ -428,22 +428,23 @@ def test_result_set_create_dataframe_nojoblib(result_set):
     importlib.util.find_spec = _find_spec
 
     with pytest.raises(RuntimeWarning):
-        with warnings.catch_warnings(action="error"):
-            result_set.create_dataframe(
-                config_columns=[
-                    "estimator_config.hidden_layers",
-                    "estimator_config.optimizer",
-                    "lr",
-                    "momentum",
-                ],
-                metrics_fn=_compute_metrics,
-                include_train=True,
-                include_val=True,
-                best_params_columns=["bs", "lr", "momentum"],
-                n_jobs=3,
-                config_columns_prefix="config_",
-                best_params_columns_prefix="best_",
-            )
+        warnings.filterwarnings("error")
+        result_set.create_dataframe(
+            config_columns=[
+                "estimator_config.hidden_layers",
+                "estimator_config.optimizer",
+                "lr",
+                "momentum",
+            ],
+            metrics_fn=_compute_metrics,
+            include_train=True,
+            include_val=True,
+            best_params_columns=["bs", "lr", "momentum"],
+            n_jobs=3,
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+        warnings.resetwarnings()
 
     result_set.create_dataframe(
         config_columns=[
@@ -461,22 +462,23 @@ def test_result_set_create_dataframe_nojoblib(result_set):
         best_params_columns_prefix="best_",
     )
 
-    with warnings.catch_warnings(action="ignore"):
-        result_set.create_dataframe(
-            config_columns=[
-                "estimator_config.hidden_layers",
-                "estimator_config.optimizer",
-                "lr",
-                "momentum",
-            ],
-            metrics_fn=_compute_metrics,
-            include_train=True,
-            include_val=True,
-            best_params_columns=["bs", "lr", "momentum"],
-            n_jobs=3,
-            config_columns_prefix="config_",
-            best_params_columns_prefix="best_",
-        )
+    warnings.filterwarnings("ignore")
+    result_set.create_dataframe(
+        config_columns=[
+            "estimator_config.hidden_layers",
+            "estimator_config.optimizer",
+            "lr",
+            "momentum",
+        ],
+        metrics_fn=_compute_metrics,
+        include_train=True,
+        include_val=True,
+        best_params_columns=["bs", "lr", "momentum"],
+        n_jobs=3,
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+    )
+    warnings.resetwarnings()
 
     importlib.util.find_spec = original_find_spec
 
