@@ -5,8 +5,8 @@ It includes the required functionalities to save the complete results of an expe
 
 | Overview  |                                                                                                                                          |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------|
-| **CI/CD** | [![!codecov](https://img.shields.io/codecov/c/github/ayrna/remayn?label=codecov&logo=codecov)](https://codecov.io/gh/ayrna/remayn) [![!python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)](https://www.python.org/) |
-| **Code**  | [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Linter: Ruff](https://img.shields.io/badge/Linter-Ruff-brightgreen?style=flat-square)](https://github.com/charliermarsh/ruff)                     |
+| **CI/CD** | [![!codecov](https://img.shields.io/codecov/c/github/ayrna/remayn?label=codecov&logo=codecov)](https://codecov.io/gh/ayrna/remayn) [![!docs](https://readthedocs.org/projects/dlordinal/badge/?version=latest&style=flat)](https://dlordinal.readthedocs.io/en/latest/)  |
+| **Code**  | [![!python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)](https://www.python.org/) [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Linter: Ruff](https://img.shields.io/badge/Linter-Ruff-brightgreen?style=flat-square)](https://github.com/charliermarsh/ruff)                     |
 
 ## Getting started
 
@@ -78,7 +78,7 @@ df = rs.create_dataframe(
 Finally, the DataFrame can be saved to a file by using the existing `pandas` methods:
 
 ```python
-df.to_excel(dataframe_path, index=False)
+df.to_excel('results.xlsx', index=False)
 ```
 
 This will generate an Excel file that contains the column given in the `config_columns` parameter along with the columns associated with the metrics computed in the function provided.
