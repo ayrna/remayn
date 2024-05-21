@@ -8,7 +8,9 @@ It includes the required functionalities to save the complete results of an expe
 | **CI/CD** | [![!python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)](https://www.python.org/) |
 | **Code**  | [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Linter: Ruff](https://img.shields.io/badge/Linter-Ruff-brightgreen?style=flat-square)](https://github.com/charliermarsh/ruff)                     |
 
-## ⚙️ Installation
+## Getting started
+
+### ⚙️ Installation
 
 `remayn v0.1.0` is the last version supported by Python >=3.8.
 
@@ -16,6 +18,70 @@ The easiest way to install `remayn` is via `pip`, from this main branch of this 
 
     pip install git+https://github.com/ayrna/remayn.git@main
 
+### 💾 Saving the results of a experiment
+A new `Result` object can be created using the `make_result` function. Then, the `Result` can be saved to disk by simply calling the `save()` method.
+```python
+import numpy as np
+from remayn.result import make_result
+
+targets = np.array([1, 2, 3])
+predictions = np.array([1.1, 2.2, 3.3])
+config = {"model": "linear_regression", "dataset": "iris", "learning_rate": 1e-3}
+
+result = make_result("./results",
+                    config=config,
+                    targets=targets,
+                    predictions=predictions
+                    )
+result.save()
+```
+This will generate an unique identifier for this `Result` and it will be saved in a subdirectory of the `./results` directory.
+
+### ⌛ Loading a set of results
+After saving the results of all the experiments, the set of results can be loaded using the `ResultFolder` class, as shown in the following snippet:
+
+```python
+from remayn.result_set import ResultFolder
+
+rs = ResultFolder('./results')
+```
+Note that the same path used to save the results is employed here to load the `ResultFolder`. The `ResultFolder` object is a special type of `ResultSet` and represents a set of results which have been loaded from disk.
+
+### 📝 Creating a pandas DataFrame that contains all the results
+After loading the results, the `create_dataframe` method of the `ResultSet` class can be used to generate a `pandas.DataFrame` containing all the results. This method receives a callable which is used to compute the metrics from the targets and predictions stored in each `Result`. Therefore, first we can define a function that computes the metrics:
+```python
+def mse(y_true, y_pred):
+    return ((y_true - y_pred)**2).mean()
+
+def _compute_metrics(targets, predictions):
+    return {
+        "mse": mse(targets, predictions),
+    }
+```
+
+Then, the `create_dataframe` method of the `ResultSet` is used:
+
+```python
+from remayn.result_set import ResultFolder
+
+rs = ResultFolder('./results')
+df = rs.create_dataframe(
+    config_columns=[
+        "model",
+        "dataset",
+        "learning_rate",
+    ],
+    metrics_fn=_compute_metrics,
+)
+```
+
+Finally, the DataFrame can be saved to a file by using the existing `pandas` methods:
+
+```python
+df.to_excel(dataframe_path, index=False)
+```
+
+This will generate an Excel file that contains the column given in the `config_columns` parameter along with the columns associated with the metrics computed in the function provided.
 
 ## Collaborating
 

@@ -12,3 +12,4 @@ This is the API for the **remayn** package.
 
    result
    result_set
+   report

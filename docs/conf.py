@@ -6,10 +6,16 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import remayn
+
 project = "remayn"
 copyright = "2024, Víctor Vargas"
 author = "Víctor Vargas"
-release = "0.1.0"
+
+version = remayn.__version__
+release = remayn.__version__
+
+github_tag = f"v{version}"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -151,7 +151,7 @@ class ResultSet:
         config_columns_prefix: str = "config_",
         best_params_columns_prefix: str = "best_",
     ):
-        """Creates a pandas DataFrame that contains all the results stored in this
+        """Creates a pandas.DataFrame that contains all the results stored in this
         ResultSet. The DataFrame will contain the columns specified in config_columns,
         best_params_columns, and the metrics computed by metrics_fn. The metrics will be
         computed on the test set by default, but the train and validation metrics can be
@@ -187,20 +187,15 @@ class ResultSet:
             If 1 is given, no parallel computing code is used at all, which is useful for
             debugging. For n_jobs below -1, (n_cpus + 1 + n_jobs) are used. Thus for
             n_jobs = -2, all CPUs but one are used.
-            `joblib` is used for parallel processing. If it is not installed, n_jobs
+            joblib is used for parallel processing. If it is not installed, n_jobs
             will be set to 1 and a warning will be issued.
             The parallel backend is not specified within this function, so the user
-            can set it using the `joblib` API. Example:
-            ```
-            from joblib import parallel_backend
-            with parallel_backend("loky", n_jobs=2):
-                results = rs.get_dataframe(...)
-            ```
-        config_columns_prefix : str, optional, default='config_'
+            can set it using the `parallel_backend` of the joblib API.
+        config_columns_prefix : str, optional, default = "config\_"
             The prefix to add to the config columns. If '', no prefix is added. Note
             that using an empty prefix can result in column name conflicts.
-        best_params_columns_prefix : str, optional, default='best_'
-            The prefix to add to the best_params columns. If '', no prefix is added. Note
+        best_params_columns_prefix : str, optional, default = "best\_"
+            The prefix to add to the best_params columns. If empty string, no prefix is added. Note
             that using an empty prefix can result in column name conflicts.
 
         Returns
@@ -244,6 +239,8 @@ class ResultSet:
                     include_train,
                     include_val,
                     best_params_columns,
+                    config_columns_prefix,
+                    best_params_columns_prefix,
                 )
                 for result in self
                 if filter_fn(result)
@@ -270,6 +267,8 @@ class ResultSet:
                             include_train,
                             include_val,
                             best_params_columns,
+                            config_columns_prefix,
+                            best_params_columns_prefix,
                         )
                     )
 
@@ -421,7 +420,7 @@ class ResultFolder(ResultSet):
 
     def load(self):
         """Loads the experiment info of all the results from the `base_path` directory.
-        Only the metadata of the experiments is loaded, while the `ResultData`is not
+        Only the metadata of the experiments is loaded, while the `ResultData` is not
         loaded until needed.
 
         It retrieves all the json files from `base_path`. Also, it checks that each

@@ -503,3 +503,57 @@ def test_result_set_create_dataframe_joblib(result_set):
         config_columns_prefix="config_",
         best_params_columns_prefix="best_",
     )
+
+
+def test_result_set_create_dataframe_custom_column_prefix(result_set, dataframe_path):
+    def _compute_metrics(targets, predictions):
+        return {
+            "accuracy": accuracy_score(targets, predictions),
+            "mze": 1 - accuracy_score(targets, predictions),
+        }
+
+    df = result_set.create_dataframe(
+        config_columns=[
+            "estimator_config.hidden_layers",
+            "estimator_config.optimizer",
+            "lr",
+            "momentum",
+        ],
+        metrics_fn=_compute_metrics,
+        include_train=True,
+        include_val=True,
+        best_params_columns=["bs", "lr", "momentum"],
+        n_jobs=1,
+        config_columns_prefix="c_",
+        best_params_columns_prefix="b_",
+    )
+
+    assert df is not None
+    columns = df.columns
+    assert "c_estimator_config.hidden_layers" in columns
+    assert "c_estimator_config.optimizer" in columns
+    assert "c_lr" in columns
+    assert "c_momentum" in columns
+
+    assert "accuracy" in columns
+    assert "mze" in columns
+    assert "train_accuracy" in columns
+    assert "train_mze" in columns
+    assert "val_accuracy" in columns
+    assert "val_mze" in columns
+
+    assert "b_bs" in columns
+    assert "b_lr" in columns
+    assert "b_momentum" in columns
+
+    assert len(df) == len(result_set)
+
+    df.to_excel(dataframe_path, index=False)
+    assert dataframe_path.exists()
+    assert dataframe_path.is_file()
+
+    df_loaded = pd.read_excel(dataframe_path)
+    assert df_loaded is not None
+    assert isinstance(df_loaded, pd.DataFrame)
+    assert len(df_loaded) == len(result_set)
+    assert all(df_loaded.columns == df.columns)
