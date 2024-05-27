@@ -299,10 +299,8 @@ def test_result_folder_load_error(result_list, result_path):
 
     (result_list[0].base_path / f"{result_list[0].id}.pkl").unlink()
 
-    with pytest.raises(UserWarning, match="Could not find"):
-        warnings.filterwarnings("error")
+    with pytest.raises(FileNotFoundError, match="Could not find"):
         ResultFolder(result_path)
-        warnings.resetwarnings()
 
     (result_list[0].base_path / f"{result_list[0].id}.json").unlink()
 
