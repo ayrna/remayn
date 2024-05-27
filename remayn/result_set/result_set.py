@@ -447,10 +447,10 @@ class ResultFolder(ResultSet):
         if len(json_files) != len(pkl_files):
             for json_file in json_files:
                 if json_file.with_suffix(".pkl") not in pkl_files:
-                    raise FileNotFoundError(
+                    warnings.warn(
                         f"Could not find pkl file for json file {json_file}",
                     )
-            raise FileNotFoundError(
+            warnings.warn(
                 f"Number of json files ({len(json_files)}) does not match"
                 f" number of pkl files ({len(pkl_files)})",
             )
