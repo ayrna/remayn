@@ -81,42 +81,30 @@ def test_validation():
     with pytest.raises(TypeError):
         ResultData(targets=None, predictions=None)
 
-    with pytest.raises(TypeError):
-        ResultData(targets=[], predictions=[])
+    ResultData(targets=[], predictions=[])
+    ResultData(targets=random_targets(), predictions=[])
+    ResultData(targets=[], predictions=random_predictions())
+    ResultData(
+        targets=random_targets(),
+        predictions=random_predictions(),
+        train_targets=[],
+    )
+    ResultData(
+        targets=random_targets(),
+        predictions=random_predictions(),
+        train_predictions=[],
+    )
 
-    with pytest.raises(TypeError):
-        ResultData(targets=random_targets(), predictions=[])
-
-    with pytest.raises(TypeError):
-        ResultData(targets=[], predictions=random_predictions())
-
-    with pytest.raises(TypeError):
-        ResultData(
-            targets=random_targets(),
-            predictions=random_predictions(),
-            train_targets=[],
-        )
-
-    with pytest.raises(TypeError):
-        ResultData(
-            targets=random_targets(),
-            predictions=random_predictions(),
-            train_predictions=[],
-        )
-
-    with pytest.raises(TypeError):
-        ResultData(
-            targets=random_targets(),
-            predictions=random_predictions(),
-            val_targets=[],
-        )
-
-    with pytest.raises(TypeError):
-        ResultData(
-            targets=random_targets(),
-            predictions=random_predictions(),
-            val_predictions=[],
-        )
+    ResultData(
+        targets=random_targets(),
+        predictions=random_predictions(),
+        val_targets=[],
+    )
+    ResultData(
+        targets=random_targets(),
+        predictions=random_predictions(),
+        val_predictions=[],
+    )
 
     with pytest.raises(TypeError):
         ResultData(
@@ -125,19 +113,16 @@ def test_validation():
             time="time",
         )
 
-    with pytest.raises(TypeError):
-        ResultData(
-            targets=random_targets(),
-            predictions=random_predictions(),
-            train_history=[],
-        )
-
-    with pytest.raises(TypeError):
-        ResultData(
-            targets=random_targets(),
-            predictions=random_predictions(),
-            val_history=[],
-        )
+    ResultData(
+        targets=random_targets(),
+        predictions=random_predictions(),
+        train_history=[],
+    )
+    ResultData(
+        targets=random_targets(),
+        predictions=random_predictions(),
+        val_history=[],
+    )
 
     with pytest.raises(TypeError):
         ResultData(

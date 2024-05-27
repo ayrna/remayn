@@ -2,6 +2,8 @@ from typing import Optional
 
 import numpy as np
 
+from ..utils import check_array
+
 
 class ResultData:
     """Stores the results of a experiment.
@@ -51,26 +53,18 @@ class ResultData:
         best_params: Optional[dict] = None,
         best_model: Optional[object] = None,
     ):
-        if not isinstance(targets, np.ndarray):
-            raise TypeError("targets must be a numpy array")
-        if not isinstance(predictions, np.ndarray):
-            raise TypeError("predictions must be a numpy array")
-        if train_targets is not None and not isinstance(train_targets, np.ndarray):
-            raise TypeError("train_targets must be a numpy array")
-        if train_predictions is not None and not isinstance(
-            train_predictions, np.ndarray
-        ):
-            raise TypeError("train_predictions must be a numpy array")
-        if val_targets is not None and not isinstance(val_targets, np.ndarray):
-            raise TypeError("val_targets must be a numpy array")
-        if val_predictions is not None and not isinstance(val_predictions, np.ndarray):
-            raise TypeError("val_predictions must be a numpy array")
-        if time is not None and not isinstance(time, (int, float)):
-            raise TypeError("time must be a number")
-        if train_history is not None and not isinstance(train_history, np.ndarray):
-            raise TypeError("train_history must be a numpy array")
-        if val_history is not None and not isinstance(val_history, np.ndarray):
-            raise TypeError("val_history must be a numpy array")
+        targets = check_array(targets)
+        predictions = check_array(predictions)
+        train_targets = check_array(train_targets, allow_none=True)
+        train_predictions = check_array(train_predictions, allow_none=True)
+        val_targets = check_array(val_targets, allow_none=True)
+        val_predictions = check_array(val_predictions, allow_none=True)
+        train_history = check_array(train_history, allow_none=True)
+        val_history = check_array(val_history, allow_none=True)
+
+        if not isinstance(time, (float, int)) and time is not None:
+            raise TypeError("time must be a float")
+
         if best_params is not None and not isinstance(best_params, dict):
             raise TypeError("best_params must be a dictionary")
 
