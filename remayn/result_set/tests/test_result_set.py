@@ -306,7 +306,8 @@ def test_result_folder_load_error(result_list, result_path):
 
     (result_list[1].base_path / f"{result_list[1].id}.json").unlink()
 
-    with pytest.raises(FileNotFoundError, match="Number of json"):
+    with pytest.raises(UserWarning, match="Number of json"):
+        warnings.filterwarnings("error")
         ResultFolder(result_path)
 
 
