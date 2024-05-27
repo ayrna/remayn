@@ -430,7 +430,7 @@ class ResultFolder(ResultSet):
         Raises
         ------
         ValueError
-            If the number of json files does not match the number of pkl files.
+            If the the pickle file for a given json file is not found.
 
         Examples
         --------
