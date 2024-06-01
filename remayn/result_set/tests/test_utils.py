@@ -158,3 +158,25 @@ def test_get_row_from_result(result):
         config_columns_prefix=None,
         best_params_columns_prefix=None,
     )
+
+    result.data_.train_history = np.array(None)
+    result.data_.val_history = np.array(None)
+    get_row_from_result(
+        result,
+        config_columns=[
+            "seed",
+            "bs",
+            "estimator_config.hidden_layers",
+            "estimator_config.hidden_units",
+        ],
+        metrics_fn=metrics_fn,
+        include_train=True,
+        include_val=True,
+        best_params_columns=[
+            "bs",
+            "lr",
+            "momentum",
+        ],
+        config_columns_prefix=None,
+        best_params_columns_prefix=None,
+    )

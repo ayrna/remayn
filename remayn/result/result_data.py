@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -11,24 +11,24 @@ class ResultData:
 
     Attributes
     ----------
-    targets: np.ndarray
+    targets: Union[np.ndarray, list]
         Numpy array of target values for the test set.
-    predictions: np.ndarray
+    predictions: Union[np.ndarray, list]
         Numpy array of predicted values for the test set.
-    train_targets: Optional[np.ndarray], optional, default=None
+    train_targets: Optional[Union[np.ndarray, list]], optional, default=None
         Numpy array of target values for the training set.
-    train_predictions: Optional[np.ndarray], optional, default=None
+    train_predictions: Optional[Union[np.ndarray, list]], optional, default=None
         Numpy array of predicted values for the training set.
-    val_targets: Optional[np.ndarray], optional, default=None
+    val_targets: Optional[Union[np.ndarray, list]], optional, default=None
         Numpy array of target values for the validation set.
-    val_predictions: Optional[np.ndarray], optional, default=None
+    val_predictions: Optional[Union[np.ndarray, list]], optional, default=None
         Numpy array of predicted values for the validation set.
     time: float, optional, default=None
         Time taken to run the experiment.
-    train_history: Optional[np.ndarray], optional, default=None
+    train_history: Optional[Union[np.ndarray, list]], optional, default=None
         Training history of the model, represented as the value of the error on each
         iteration.
-    val_history: Optional[np.ndarray], optional, default=None
+    val_history: Optional[Union[np.ndarray, list]], optional, default=None
         Validation history of the model, represented as the value of the error on each
         iteration.
     best_params: Optional[dict], optional, default=None
@@ -41,15 +41,15 @@ class ResultData:
     def __init__(
         self,
         *,
-        targets: np.ndarray,
-        predictions: np.ndarray,
-        train_targets: Optional[np.ndarray] = None,
-        train_predictions: Optional[np.ndarray] = None,
-        val_targets: Optional[np.ndarray] = None,
-        val_predictions: Optional[np.ndarray] = None,
+        targets: Union[np.ndarray, list],
+        predictions: Union[np.ndarray, list],
+        train_targets: Optional[Union[np.ndarray, list]] = None,
+        train_predictions: Optional[Union[np.ndarray, list]] = None,
+        val_targets: Optional[Union[np.ndarray, list]] = None,
+        val_predictions: Optional[Union[np.ndarray, list]] = None,
         time: Optional[float] = None,
-        train_history: Optional[np.ndarray] = None,
-        val_history: Optional[np.ndarray] = None,
+        train_history: Optional[Union[np.ndarray, list]] = None,
+        val_history: Optional[Union[np.ndarray, list]] = None,
         best_params: Optional[dict] = None,
         best_model: Optional[object] = None,
     ):

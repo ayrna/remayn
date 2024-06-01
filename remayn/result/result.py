@@ -28,7 +28,7 @@ class Result:
         Dictionary containing the parameters used in the experiment. All the elements
         in the dictionary must be JSON serializable. Objects contained in this dict
         should implement a custom __str__ method.
-    data_: Optional[ResultData]
+    data\\_: Optional[ResultData]
         Contains the `ResultData` when loaded or None if it was not loaded yet.
         This attribute should not be accessed directly. Use get_result() instead to
         make sure that the ResultData is properly loaded before accessing it.
@@ -179,10 +179,10 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
             )
 
     def load_data(self, force=False):
-        """Load the ResultData from the disk.
-        This method reads the ResultData from the disk and stores it in the data_
+        """Load the `ResultData` from the disk.
+        This method reads the `ResultData` from the disk and stores it in the `data\\_`
         attribute. It also checks the integrity of the pickle file using the md5sum.
-        This method is called automatically by get_result() when the ResultData is
+        This method is called automatically by get_result() when the `ResultData` is
         needed. However, you can call it manually to force the loading of the file.
         If the file was already loaded, this method does nothing, unless force=True is
         passed as an argument.
@@ -195,7 +195,7 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         Raises
         ------
         FileNotFoundError
-            If the ResultData does not exist.
+            If the `ResultData` does not exist.
         ValueError
             If the md5sum of the file does not match the one stored in the experiment
             information.
@@ -239,22 +239,22 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         return self.data_md5sum_
 
     def get_data(self, force_reload=False):
-        """Gets the ResultData of the experiment. If it was not loaded yet, it loads it
+        """Gets the `ResultData` of the experiment. If it was not loaded yet, it loads it
         from the disk. If the file was already loaded, it returns the stored object.
-        This method should be used to access the ResultData instead of accessing the
-        data_ attribute directly.
+        This method should be used to access the `ResultData` instead of accessing the
+        `data\\_` attribute directly.
 
         Parameters
         ----------
         force_reload: bool, optional, default=False
-            If True, the ResultData will be reloaded even if it was already loaded.
-            If False, it will only load the ResultData when it has not been loaded yet.
+            If True, the `ResultData` will be reloaded even if it was already loaded.
+            If False, it will only load the `ResultData` when it has not been loaded yet.
 
         Returns
         -------
         ResultData
-            The ResultData object containing the results of the experiment. None if the
-            ResultData is empty.
+            The `ResultData` object containing the results of the experiment. None if the
+            `ResultData` is empty.
         """
 
         if self.data_ is None or force_reload:
@@ -264,7 +264,7 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
 
     def set_data(self, data: ResultData):
         """Sets the ResultData of the experiment.
-        This method should be used to set the ResultData instead of setting the data_
+        This method should be used to set the ResultData instead of setting the `data\\_`
         attribute directly.
 
         Parameters
@@ -337,6 +337,9 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         try:
             safe_info = sanitize_json(experiment_info, accept_default_str=False)
         except NonDefaultStrMethodError:
+            # Remove pickle file if an error occurs
+            data_path.unlink()
+
             raise ValueError(
                 "Experiment info contains some fields that are subject to change when"
                 " the experiment is loaded from disk. Please, make sure that all the"

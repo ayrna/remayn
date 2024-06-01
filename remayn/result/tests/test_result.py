@@ -387,9 +387,13 @@ def test_save_result(saved_result, complete_result, result_path, result_config):
     assert data.best_model == TestEstimator(lr=1e-5)
 
     # try to assign and save a config with the WrongEstimator
+    complete_result.get_data_path().unlink(missing_ok=True)
+    complete_result.get_info_path().unlink(missing_ok=True)
     complete_result.config["estimator"] = WrongEstimator(lr=1e-3)
     with pytest.raises(ValueError):
         complete_result.save()
+    assert not complete_result.get_data_path().is_file()
+    assert not complete_result.get_info_path().is_file()
 
 
 def test_result_comparison(result, saved_result, complete_result):
