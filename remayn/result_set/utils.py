@@ -148,11 +148,11 @@ def get_row_from_result(
     row["time"] = time
 
     # Add best epoch and loss value if histories are available
-    if data.train_history is not None:
+    if isinstance(data.train_history, np.ndarray) and len(data.train_history.shape) > 0:
         row["best_train_epoch"] = data.train_history.argmin() + 1
         row["best_train_loss"] = data.train_history.min()
 
-    if data.val_history is not None:
+    if isinstance(data.val_history, np.ndarray) and len(data.val_history.shape) > 0:
         row["best_val_epoch"] = data.val_history.argmin() + 1
         row["best_val_loss"] = data.val_history.min()
 
