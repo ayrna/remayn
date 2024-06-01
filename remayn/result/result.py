@@ -337,6 +337,9 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         try:
             safe_info = sanitize_json(experiment_info, accept_default_str=False)
         except NonDefaultStrMethodError:
+            # Remove pickle file if an error occurs
+            data_path.unlink()
+
             raise ValueError(
                 "Experiment info contains some fields that are subject to change when"
                 " the experiment is loaded from disk. Please, make sure that all the"
