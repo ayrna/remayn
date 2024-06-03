@@ -42,6 +42,29 @@ def create_excel_summary_report(
     -------
     Path
         The path to the created Excel file.
+
+    Examples
+    --------
+    >>> results = ResultFolder('./results')
+    >>> def compute_metrics(targets, predictions):
+    ...     return {
+    ...         "accuracy": (targets == predictions).mean(),
+    ...      }
+    >>> df = results.create_dataframe(
+    ...     config_columns=[
+    ...         "dataset",
+    ...         "estimator_name",
+    ...         "rs",
+    ...     ],
+    ...     best_params_columns=[],
+    ...     metrics_fn=compute_metrics,
+    ...     config_columns_prefix="",
+    ... )
+    >>> create_excel_summary_report(
+    ...     df,
+    ...     "summary_report.xlsx",
+    ...     group_columns=["dataset", "estimator_name"],
+    ... )
     """
 
     destination_path = Path(destination_path)
@@ -106,6 +129,33 @@ def create_excel_columns_report(
     -------
     Path
         The path to the created Excel file.
+
+    Examples
+    --------
+    Examples
+    --------
+    >>> results = ResultFolder('./results')
+    >>> def compute_metrics(targets, predictions):
+    ...     return {
+    ...         "accuracy": (targets == predictions).mean(),
+    ...      }
+    >>> df = results.create_dataframe(
+    ...     config_columns=[
+    ...         "dataset",
+    ...         "estimator_name",
+    ...         "rs",
+    ...     ],
+    ...     best_params_columns=[],
+    ...     metrics_fn=compute_metrics,
+    ...     config_columns_prefix="",
+    ... )
+    >>> create_excel_columns_report(
+    ...     df,
+    ...     "columns_report.xlsx",
+    ...     metric_columns=["accuracy"],
+    ...     pivot_index="rs",
+    ...     pivot_columns=["dataset", "estimator_name"],
+    ... )
     """
 
     destination_path = Path(destination_path)
