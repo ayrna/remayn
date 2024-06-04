@@ -1,4 +1,5 @@
-from typing import Callable, Dict, List, Optional
+import warnings
+from typing import Callable, Dict, List, Literal, Optional, Union
 
 import numpy as np
 
@@ -7,10 +8,11 @@ from ..utils import get_deep_item_from_dict
 
 
 def get_metric_columns_values(
-    targets: Optional[np.ndarray],
-    predictions: Optional[np.ndarray],
+    targets: Optional[Union[np.ndarray, list]],
+    predictions: Optional[Union[np.ndarray, list]],
     prefix: str,
     metrics_fn: Callable[[np.ndarray, np.ndarray], Dict[str, float]],
+    raise_errors: Literal["error", "warning", "ignore"] = "error",
 ) -> Dict[str, float]:
     """Creates the row with the metrics values for the given targets and predictions.
     The name of each column is determined by appending the name of the metric to the
@@ -19,22 +21,39 @@ def get_metric_columns_values(
 
     Parameters
     ----------
-    targets : np.ndarray
+    targets : np.ndarray or list
         The targets.
-    predictions : np.ndarray
+    predictions : np.ndarray or list
         The predictions.
     prefix : str
         The prefix to add to the column names.
     metrics_fn : Callable[[np.ndarray, np.ndarray], Dict[str, float]]
         The function to calculate the metrics. See `ResultSet.get_dataframe` for more
         details.
+    raise_errors : Literal["error", "warning", "ignore"], default="error"
+        If set to 'error', it will raise an error if the targets or predictions are not
+        valid values. If set to 'warning', it will throw a warning instead. If set to
+        'ignore', it will ignore the error and return an empty dictionary.
 
     Returns
     -------
     row : Dict[str, float]
         The row with the metrics values. The keys represent the name of the columns and
         the values are the metrics values.
+
+    Raises
+    ------
+    ValueError
+        If raise_errors is not 'error', 'warning' or 'ignore'.
+    TypeError
+        If the targets or predictions are not numpy arrays and raise_errors is 'error'.
     """
+
+    if raise_errors not in ["error", "warning", "ignore"]:
+        raise ValueError(
+            f"raise_errors must be 'error', 'warning' or 'ignore'."
+            f" Found: {raise_errors}."
+        )
 
     if isinstance(targets, list):
         targets = np.array(targets)
@@ -42,10 +61,56 @@ def get_metric_columns_values(
     if isinstance(predictions, list):
         predictions = np.array(predictions)
 
-    if targets is not None and predictions is not None:
+    if targets is not None and not isinstance(targets, np.ndarray):
+        if raise_errors == "error":
+            raise TypeError(
+                f"If set, targets must be a numpy array. Found type: {type(targets)}."
+                " You can set raise_errors='warning' to skip this error and throw a "
+                "warning instead. You can also set raise_errors='ignore' to ignore "
+                "this error."
+            )
+        else:
+            targets = np.array([])
+            if raise_errors == "warning":
+                warnings.warn(
+                    f"If set, targets must be a numpy array. Found type: {type(targets)}."
+                    " Setting targets to an empty numpy array."
+                )
+
+    if predictions is not None and not isinstance(predictions, np.ndarray):
+        if raise_errors == "error":
+            raise TypeError(
+                f"If set, predictions must be a numpy array."
+                f" Found type: {type(predictions)}."
+                " You can set raise_errors='warning' to skip this error and throw a "
+                "warning instead. You can also set raise_errors='ignore' to ignore "
+                "this error."
+            )
+        else:
+            predictions = np.array([])
+            if raise_errors == "warning":
+                warnings.warn(
+                    f"If set, predictions must be a numpy array."
+                    f" Found type: {type(predictions)}."
+                    " Setting predictions to an empty numpy array."
+                )
+
+    if (
+        targets is not None
+        and predictions is not None
+        and len(targets.shape) > 0
+        and len(predictions.shape) > 0
+        and targets.shape[0] > 0
+        and predictions.shape[0] > 0
+    ):
         metrics = metrics_fn(targets, predictions)
         row = {f"{prefix}{column}": value for column, value in metrics.items()}
     else:
+        if raise_errors in ["error", "warning"]:
+            warnings.warn(
+                "Targets or predictions are empty. Skipping metrics calculation."
+                f" Prefix: {prefix}"
+            )
         row = {}
 
     return row
@@ -60,6 +125,7 @@ def get_row_from_result(
     best_params_columns: List[str] = [],
     config_columns_prefix: str = "config_",
     best_params_columns_prefix: str = "best_",
+    raise_errors: Literal["error", "warning", "ignore"] = "error",
 ) -> Dict[str, float]:
     """Create a row with the information of a `Result`, which can be included in the
     pandas DataFrame of a `ResultSet`. The row contains the configuration columns
@@ -88,13 +154,24 @@ def get_row_from_result(
         The prefix to add to the configuration columns.
     best_params_columns_prefix : str, default="best_"
         The prefix to add to the best parameters columns.
+    raise_errors : Literal["error", "warning", "ignore"], default="error"
+        Determines the behaviour when an error occurs during the calculation of the
+        metrics. See `get_metric_columns_values` for more details.
 
     Returns
     -------
     row : Dict[str, float]
         The row with the information of the `Result`. Each key represents the name of a
         column and the value is the corresponding value.
+
+    Raises
+    ------
+    TypeError
+        If the input is not a `Result` object.
     """
+
+    if not isinstance(result, Result):
+        raise TypeError(f"result must be a Result object. Found type: {type(result)}.")
 
     data = result.get_data()
 
@@ -133,6 +210,7 @@ def get_row_from_result(
             data.train_predictions,
             "train_",
             metrics_fn,
+            raise_errors=raise_errors,
         )
         row = {**row, **train_metrics_row}
 
@@ -142,6 +220,7 @@ def get_row_from_result(
             data.val_predictions,
             "val_",
             metrics_fn,
+            raise_errors=raise_errors,
         )
         row = {**row, **val_metrics_row}
 
