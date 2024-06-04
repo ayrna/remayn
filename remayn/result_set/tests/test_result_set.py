@@ -430,6 +430,42 @@ def test_result_set_create_dataframe(result_set, result_list, dataframe_path):
         best_params_columns_prefix="best_",
     )
 
+    with pytest.raises(ValueError):
+        result_set.create_dataframe(
+            config_columns=[
+                "estimator_config.hidden_layers",
+                "estimator_config.optimizer",
+                "lr",
+                "momentum",
+            ],
+            metrics_fn=_compute_metrics,
+            include_train=True,
+            include_val=True,
+            best_params_columns=["bs", "lr", "momentum"],
+            n_jobs=1,
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+            raise_errors=True,
+        )
+
+    with pytest.raises(ValueError):
+        result_set.create_dataframe(
+            config_columns=[
+                "estimator_config.hidden_layers",
+                "estimator_config.optimizer",
+                "lr",
+                "momentum",
+            ],
+            metrics_fn=_compute_metrics,
+            include_train=True,
+            include_val=True,
+            best_params_columns=["bs", "lr", "momentum"],
+            n_jobs=1,
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+            raise_errors="not valid",
+        )
+
 
 def test_result_set_create_dataframe_nojoblib(result_set):
     def _compute_metrics(targets, predictions):

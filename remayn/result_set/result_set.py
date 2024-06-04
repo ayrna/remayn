@@ -1,7 +1,7 @@
 import importlib.util
 import warnings
 from pathlib import Path
-from typing import Callable, Dict, List, Set, Union
+from typing import Callable, Dict, List, Literal, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -150,6 +150,7 @@ class ResultSet:
         n_jobs: int = -1,
         config_columns_prefix: str = "config_",
         best_params_columns_prefix: str = "best_",
+        raise_errors: Literal["error", "warning", "ignore"] = "error",
     ):
         """Creates a pandas.DataFrame that contains all the results stored in this
         ResultSet. The DataFrame will contain the columns specified in config_columns,
@@ -197,6 +198,9 @@ class ResultSet:
         best_params_columns_prefix : str, optional, default = "best\_"
             The prefix to add to the best_params columns. If empty string, no prefix is added. Note
             that using an empty prefix can result in column name conflicts.
+        raise_errors : Literal["error", "warning", "ignore"], optional, default="error"
+            Defines the behaviour when an error occurs during the creation of a row. See
+            `remayn.result_set.utils.get_metric_columns_values` for more details.
 
         Returns
         -------
@@ -207,6 +211,8 @@ class ResultSet:
         ------
         ValueError
             If n_jobs is set to 0.
+        ValueError
+            If raise_errors is not one of "error", "warning" or "ignore".
         """
 
         data = []
@@ -215,6 +221,11 @@ class ResultSet:
         if n_jobs == 0:
             raise ValueError(
                 "n_jobs=0 is not supported. See n_jobs parameter in the documentation."
+            )
+
+        if raise_errors not in ["error", "warning", "ignore"]:
+            raise ValueError(
+                "raise_errors must be one of 'error', 'warning' or 'ignore'."
             )
 
         # Set n_jobs to 1 if joblib is not available
@@ -241,6 +252,7 @@ class ResultSet:
                     best_params_columns,
                     config_columns_prefix,
                     best_params_columns_prefix,
+                    raise_errors,
                 )
                 for result in self
                 if filter_fn(result)
@@ -269,6 +281,7 @@ class ResultSet:
                             best_params_columns,
                             config_columns_prefix,
                             best_params_columns_prefix,
+                            raise_errors,
                         )
                     )
 
