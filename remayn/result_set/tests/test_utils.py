@@ -1,3 +1,4 @@
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -22,7 +23,11 @@ def metrics_fn(targets, predictions):
     }
 
 
-def generate_random_result(base_path):
+def invalid_metrics_fn(targets, predictions):
+    return accuracy_score(targets, predictions)
+
+
+def generate_random_result(base_path, with_train=True, with_validation=True):
     result = make_result(
         base_path=base_path,
         config={
@@ -42,10 +47,10 @@ def generate_random_result(base_path):
         },
         targets=np.random.randint(0, 10, 100),
         predictions=np.random.rand(100, 10),
-        train_targets=np.random.randint(0, 10, 100),
-        train_predictions=np.random.rand(100, 10),
-        val_targets=np.random.randint(0, 10, 100),
-        val_predictions=np.random.rand(100, 10),
+        train_targets=np.random.randint(0, 10, 100) if with_train else None,
+        train_predictions=np.random.rand(100, 10) if with_train else np.array(None),
+        val_targets=np.random.randint(0, 10, 100) if with_validation else np.array([]),
+        val_predictions=np.random.rand(100, 10) if with_validation else [],
         time=np.random.rand() * 1000,
         train_history=np.random.rand(100),
         val_history=np.random.rand(100),
@@ -61,6 +66,11 @@ def generate_random_result(base_path):
 @pytest.fixture
 def result():
     return generate_random_result("./results")
+
+
+@pytest.fixture
+def result_without_trainval():
+    return generate_random_result("./results", with_train=False, with_validation=False)
 
 
 @pytest.fixture
@@ -86,15 +96,164 @@ def test_get_metric_columns_values(targets, predictions):
     assert "val_accuracy" in row
     assert "val_mze" in row
 
+    # Treat warnings as errors
+    warnings.filterwarnings("error")
+
+    with pytest.raises(UserWarning):
+        get_metric_columns_values([], [], "", metrics_fn)
+
+    with pytest.raises(UserWarning):
+        get_metric_columns_values(None, None, "", metrics_fn)
+
+    with pytest.raises(UserWarning):
+        get_metric_columns_values(np.array(None), np.array(None), "", metrics_fn)
+
+    with pytest.raises(UserWarning):
+        get_metric_columns_values(np.array([]), np.array([]), "", metrics_fn)
+
+    with pytest.raises(TypeError):
+        get_metric_columns_values(
+            {"this": "is a dict"}, {"this": "is a dict"}, "", metrics_fn
+        )
+
+    with pytest.raises(TypeError):
+        get_metric_columns_values(targets, {"this": "is a dict"}, "", metrics_fn)
+
+    with pytest.raises(TypeError):
+        get_metric_columns_values({"this": "is a dict"}, predictions, "", metrics_fn)
+
+    # Reset warnings
+    warnings.resetwarnings()
+
+    # Ignore warnings
+    warnings.filterwarnings("ignore")
+
     row = get_metric_columns_values([], [], "", metrics_fn)
-    assert "accuracy" in row
-    assert "mze" in row
+    assert row == {}
 
     row = get_metric_columns_values(None, None, "", metrics_fn)
     assert row == {}
 
+    row = get_metric_columns_values(np.array(None), np.array(None), "", metrics_fn)
+    assert row == {}
 
-def test_get_row_from_result(result):
+    row = get_metric_columns_values(np.array([]), np.array([]), "", metrics_fn)
+    assert row == {}
+
+    # Reset warnings
+    warnings.resetwarnings()
+
+    with pytest.raises(ValueError):
+        get_metric_columns_values(targets, predictions, "", metrics_fn, raise_errors="")
+
+    with pytest.raises(ValueError):
+        get_metric_columns_values(
+            targets, predictions, "", metrics_fn, raise_errors="invalid"
+        )
+
+    with pytest.raises(ValueError):
+        get_metric_columns_values(
+            targets, predictions, "", metrics_fn, raise_errors=False
+        )
+
+    # Treat warnings as errors
+    warnings.filterwarnings("error")
+
+    with pytest.raises(UserWarning):
+        get_metric_columns_values(
+            {"this": "is a dict"},
+            {"this": "is a dict"},
+            "",
+            metrics_fn,
+            raise_errors="warning",
+        )
+
+    with pytest.raises(UserWarning):
+        get_metric_columns_values(
+            targets,
+            {"this": "is a dict"},
+            "",
+            metrics_fn,
+            raise_errors="warning",
+        )
+
+    with pytest.raises(UserWarning):
+        get_metric_columns_values(
+            {"this": "is a dict"},
+            predictions,
+            "",
+            metrics_fn,
+            raise_errors="warning",
+        )
+
+    row = get_metric_columns_values(
+        {"this": "is a dict"},
+        {"this": "is a dict"},
+        "",
+        metrics_fn,
+        raise_errors="ignore",
+    )
+    assert row == {}
+
+    row = get_metric_columns_values(
+        targets,
+        {"this": "is a dict"},
+        "",
+        metrics_fn,
+        raise_errors="ignore",
+    )
+    assert row == {}
+
+    row = get_metric_columns_values(
+        {"this": "is a dict"},
+        predictions,
+        "",
+        metrics_fn,
+        raise_errors="ignore",
+    )
+    assert row == {}
+
+    # Reset warnings
+    warnings.resetwarnings()
+
+    # Ignore warnings
+    warnings.filterwarnings("ignore")
+
+    row = get_metric_columns_values(
+        {"this": "is a dict"},
+        {"this": "is a dict"},
+        "",
+        metrics_fn,
+        raise_errors="warning",
+    )
+    assert row == {}
+
+    row = get_metric_columns_values(
+        targets,
+        {"this": "is a dict"},
+        "",
+        metrics_fn,
+        raise_errors="warning",
+    )
+    assert row == {}
+
+    row = get_metric_columns_values(
+        {"this": "is a dict"},
+        predictions,
+        "",
+        metrics_fn,
+        raise_errors="warning",
+    )
+    assert row == {}
+
+    # Reset warnings
+    warnings.resetwarnings()
+
+    with pytest.raises(TypeError):
+        get_metric_columns_values(targets, predictions, "", invalid_metrics_fn)
+
+
+def test_get_row_from_result(result, result_without_trainval):
     get_row_from_result(
         result,
         config_columns=[
@@ -201,4 +360,240 @@ def test_get_row_from_result(result):
         ],
         config_columns_prefix=None,
         best_params_columns_prefix=None,
+    )
+
+    with pytest.raises(TypeError):
+        get_row_from_result(
+            None,
+            config_columns=[
+                "seed",
+                "bs",
+                "estimator_config.hidden_layers",
+                "estimator_config.hidden_units",
+            ],
+            metrics_fn=metrics_fn,
+            include_train=True,
+            include_val=True,
+            best_params_columns=[
+                "bs",
+                "lr",
+                "momentum",
+            ],
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+
+    with pytest.raises(TypeError):
+        get_row_from_result(
+            {"this": "is a dict"},
+            config_columns=[
+                "seed",
+                "bs",
+                "estimator_config.hidden_layers",
+                "estimator_config.hidden_units",
+            ],
+            metrics_fn=metrics_fn,
+            include_train=True,
+            include_val=True,
+            best_params_columns=[
+                "bs",
+                "lr",
+                "momentum",
+            ],
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+
+    warnings.filterwarnings("error")
+
+    with pytest.raises(UserWarning):
+        get_row_from_result(
+            result_without_trainval,
+            config_columns=[
+                "seed",
+                "bs",
+                "estimator_config.hidden_layers",
+                "estimator_config.hidden_units",
+            ],
+            metrics_fn=metrics_fn,
+            include_train=True,
+            include_val=True,
+            best_params_columns=[
+                "bs",
+                "lr",
+                "momentum",
+            ],
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+
+    with pytest.raises(UserWarning):
+        get_row_from_result(
+            result_without_trainval,
+            config_columns=[
+                "seed",
+                "bs",
+                "estimator_config.hidden_layers",
+                "estimator_config.hidden_units",
+            ],
+            metrics_fn=metrics_fn,
+            include_train=False,
+            include_val=True,
+            best_params_columns=[
+                "bs",
+                "lr",
+                "momentum",
+            ],
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+
+    with pytest.raises(UserWarning):
+        get_row_from_result(
+            result_without_trainval,
+            config_columns=[
+                "seed",
+                "bs",
+                "estimator_config.hidden_layers",
+                "estimator_config.hidden_units",
+            ],
+            metrics_fn=metrics_fn,
+            include_train=True,
+            include_val=False,
+            best_params_columns=[
+                "bs",
+                "lr",
+                "momentum",
+            ],
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+        )
+
+    warnings.resetwarnings()
+
+    warnings.filterwarnings("ignore")
+
+    get_row_from_result(
+        result_without_trainval,
+        config_columns=[
+            "seed",
+            "bs",
+            "estimator_config.hidden_layers",
+            "estimator_config.hidden_units",
+        ],
+        metrics_fn=metrics_fn,
+        include_train=True,
+        include_val=True,
+        best_params_columns=[
+            "bs",
+            "lr",
+            "momentum",
+        ],
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+    )
+
+    get_row_from_result(
+        result_without_trainval,
+        config_columns=[
+            "seed",
+            "bs",
+            "estimator_config.hidden_layers",
+            "estimator_config.hidden_units",
+        ],
+        metrics_fn=metrics_fn,
+        include_train=True,
+        include_val=False,
+        best_params_columns=[
+            "bs",
+            "lr",
+            "momentum",
+        ],
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+    )
+
+    get_row_from_result(
+        result_without_trainval,
+        config_columns=[
+            "seed",
+            "bs",
+            "estimator_config.hidden_layers",
+            "estimator_config.hidden_units",
+        ],
+        metrics_fn=metrics_fn,
+        include_train=False,
+        include_val=True,
+        best_params_columns=[
+            "bs",
+            "lr",
+            "momentum",
+        ],
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+    )
+
+    warnings.resetwarnings()
+
+    get_row_from_result(
+        result_without_trainval,
+        config_columns=[
+            "seed",
+            "bs",
+            "estimator_config.hidden_layers",
+            "estimator_config.hidden_units",
+        ],
+        metrics_fn=metrics_fn,
+        include_train=True,
+        include_val=True,
+        best_params_columns=[
+            "bs",
+            "lr",
+            "momentum",
+        ],
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+        raise_errors="ignore",
+    )
+
+    get_row_from_result(
+        result_without_trainval,
+        config_columns=[
+            "seed",
+            "bs",
+            "estimator_config.hidden_layers",
+            "estimator_config.hidden_units",
+        ],
+        metrics_fn=metrics_fn,
+        include_train=True,
+        include_val=False,
+        best_params_columns=[
+            "bs",
+            "lr",
+            "momentum",
+        ],
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+        raise_errors="ignore",
+    )
+
+    get_row_from_result(
+        result_without_trainval,
+        config_columns=[
+            "seed",
+            "bs",
+            "estimator_config.hidden_layers",
+            "estimator_config.hidden_units",
+        ],
+        metrics_fn=metrics_fn,
+        include_train=False,
+        include_val=True,
+        best_params_columns=[
+            "bs",
+            "lr",
+            "momentum",
+        ],
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+        raise_errors="ignore",
     )

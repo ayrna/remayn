@@ -30,6 +30,9 @@ class TestEstimator:
 
 
 def accuracy_score(y_true, y_pred):
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
     if len(y_pred.shape) > 1:
         y_pred = np.argmax(y_pred, axis=1)
 
@@ -409,6 +412,58 @@ def test_result_set_create_dataframe(result_set, result_list, dataframe_path):
             n_jobs=0,
             config_columns_prefix="config_",
             best_params_columns_prefix="best_",
+        )
+
+    result_set.create_dataframe(
+        config_columns=[
+            "estimator_config.hidden_layers",
+            "estimator_config.optimizer",
+            "lr",
+            "momentum",
+        ],
+        metrics_fn=_compute_metrics,
+        include_train=True,
+        include_val=True,
+        best_params_columns=["bs", "lr", "momentum", "non_existent"],
+        n_jobs=1,
+        config_columns_prefix="config_",
+        best_params_columns_prefix="best_",
+    )
+
+    with pytest.raises(ValueError):
+        result_set.create_dataframe(
+            config_columns=[
+                "estimator_config.hidden_layers",
+                "estimator_config.optimizer",
+                "lr",
+                "momentum",
+            ],
+            metrics_fn=_compute_metrics,
+            include_train=True,
+            include_val=True,
+            best_params_columns=["bs", "lr", "momentum"],
+            n_jobs=1,
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+            raise_errors=True,
+        )
+
+    with pytest.raises(ValueError):
+        result_set.create_dataframe(
+            config_columns=[
+                "estimator_config.hidden_layers",
+                "estimator_config.optimizer",
+                "lr",
+                "momentum",
+            ],
+            metrics_fn=_compute_metrics,
+            include_train=True,
+            include_val=True,
+            best_params_columns=["bs", "lr", "momentum"],
+            n_jobs=1,
+            config_columns_prefix="config_",
+            best_params_columns_prefix="best_",
+            raise_errors="not valid",
         )
 
 
