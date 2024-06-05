@@ -47,6 +47,8 @@ def get_metric_columns_values(
         If raise_errors is not 'error', 'warning' or 'ignore'.
     TypeError
         If the targets or predictions are not numpy arrays and raise_errors is 'error'.
+    TypeError
+        If the metrics function does not return a dictionary.
     """
 
     if raise_errors not in ["error", "warning", "ignore"]:
@@ -104,6 +106,10 @@ def get_metric_columns_values(
         and predictions.shape[0] > 0
     ):
         metrics = metrics_fn(targets, predictions)
+        if not isinstance(metrics, dict):
+            raise TypeError(
+                f"metrics_fn must return a dictionary. Found type: {type(metrics)}."
+            )
         row = {f"{prefix}{column}": value for column, value in metrics.items()}
     else:
         if raise_errors in ["error", "warning"]:

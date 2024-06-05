@@ -24,10 +24,7 @@ def metrics_fn(targets, predictions):
 
 
 def invalid_metrics_fn(targets, predictions):
-    return {
-        "accuracy": accuracy_score(targets, predictions),
-        "mze": 1 - accuracy_score(targets, predictions),
-    }
+    return accuracy_score(targets, predictions)
 
 
 def generate_random_result(base_path, with_train=True, with_validation=True):
@@ -251,6 +248,9 @@ def test_get_metric_columns_values(targets, predictions):
 
     # Reset warnings
     warnings.resetwarnings()
+
+    with pytest.raises(TypeError):
+        get_metric_columns_values(targets, predictions, "", invalid_metrics_fn)
 
 
 def test_get_row_from_result(result, result_without_trainval):
