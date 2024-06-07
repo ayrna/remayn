@@ -99,7 +99,8 @@ class ResultSet:
             )
 
     def filter_by_config(self, config: dict) -> "ResultSet":
-        """Filters the results by config.
+        """Create a copy of this `ResultSet` filtered by config. The new `ResultSet`
+        contains the results that match the given config.
 
         Parameters
         ----------
@@ -137,6 +138,45 @@ class ResultSet:
 
         return ResultSet(filtered_results)
 
+    def filter(self, filter_fn: Callable[[Result], bool]) -> "ResultSet":
+        """Create a copy of this `ResultSet` filtered by a function. The new `ResultSet`
+        contains the results that satisfy the condition given by the filter function.
+
+        Parameters
+        ----------
+        filter_fn : Callable[[Result], bool]
+            Function to filter the results. If it returns True, the result will be
+            included in the new `ResultSet`. The function receives a single parameter
+            which is the `Result` object being processed. It must return a boolean value.
+
+        Returns
+        -------
+        results : ResultSet
+            A `ResultSet` that contains only the results that satisfy the condition.
+
+        Raises
+        ------
+        TypeError
+            If the `filter_fn` parameter is not a callable.
+        """
+
+        if not callable(filter_fn):
+            raise TypeError(
+                f"Expected callable, got {type(filter_fn).__name__}",
+            )
+
+        filtered_results = []
+        for result in self:
+            match = filter_fn(result)
+            if not isinstance(match, bool):
+                raise TypeError(
+                    "The filter function must return a boolean value.",
+                )
+            if match:
+                filtered_results.append(result)
+
+        return ResultSet(filtered_results)
+
     def create_dataframe(
         self,
         config_columns: List[str] = [],
@@ -152,7 +192,7 @@ class ResultSet:
         best_params_columns_prefix: str = "best_",
         raise_errors: Literal["error", "warning", "ignore"] = "error",
     ):
-        """Creates a pandas.DataFrame that contains all the results stored in this
+        """Creates a `pandas.DataFrame` that contains all the results stored in this
         ResultSet. The DataFrame will contain the columns specified in config_columns,
         best_params_columns, and the metrics computed by metrics_fn. The metrics will be
         computed on the test set by default, but the train and validation metrics can be
@@ -192,10 +232,10 @@ class ResultSet:
             will be set to 1 and a warning will be issued.
             The parallel backend is not specified within this function, so the user
             can set it using the `parallel_backend` of the joblib API.
-        config_columns_prefix : str, optional, default = "config\_"
+        config_columns_prefix : str, optional, default = "config\\_"
             The prefix to add to the config columns. If '', no prefix is added. Note
             that using an empty prefix can result in column name conflicts.
-        best_params_columns_prefix : str, optional, default = "best\_"
+        best_params_columns_prefix : str, optional, default = "best\\_"
             The prefix to add to the best_params columns. If empty string, no prefix is added. Note
             that using an empty prefix can result in column name conflicts.
         raise_errors : Literal["error", "warning", "ignore"], optional, default="error"
