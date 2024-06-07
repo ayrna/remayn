@@ -257,6 +257,39 @@ def test_result_set_filter_by_config(result_set):
         result_set.filter_by_config([1])
 
 
+def test_result_set_filter(result_set):
+    def _filter_fn(result):
+        return result.config["estimator_config"]["optimizer"] == "adam"
+
+    def _filter_fn_error(result):
+        return "invalid value"
+
+    def _filter_fn_error2(result):
+        return result.config["nonexistent"] == "test"
+
+    filtered_result_set = result_set.filter(_filter_fn)
+    assert len(filtered_result_set) <= len(result_set)
+    assert all(
+        r.config["estimator_config"]["optimizer"] == "adam" for r in filtered_result_set
+    )
+    assert len(filtered_result_set) > 0
+
+    with pytest.raises(TypeError):
+        result_set.filter(None)
+    with pytest.raises(TypeError):
+        result_set.filter([])
+    with pytest.raises(TypeError):
+        result_set.filter({})
+    with pytest.raises(TypeError):
+        result_set.filter(1)
+
+    with pytest.raises(TypeError):
+        result_set.filter(_filter_fn_error)
+
+    with pytest.raises(KeyError):
+        result_set.filter(_filter_fn_error2)
+
+
 def test_result_set_str_repr(result_set):
     assert str(len(result_set)) in str(result_set)
     assert str(len(result_set)) in repr(result_set)
