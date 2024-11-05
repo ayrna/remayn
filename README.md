@@ -18,7 +18,7 @@ The easiest way to install `remayn` is via `pip`:
 
     pip install remayn
 
-### 💾 Saving the results of a experiment
+### 💾 Saving the results of an experiment
 A new `Result` object can be created using the `make_result` function. Then, the `Result` can be saved to disk by simply calling the `save()` method.
 ```python
 import numpy as np
