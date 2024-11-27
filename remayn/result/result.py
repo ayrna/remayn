@@ -1,5 +1,6 @@
 import json
 import pickle
+import shutil
 import time
 from hashlib import md5
 from pathlib import Path
@@ -288,7 +289,6 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
 
         return {
             "config": self.config,
-            "data_path": self.get_data_path(),
             "data_md5sum": self.get_md5sum(),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -444,6 +444,56 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         result.updated_at = info["updated_at"] if "updated_at" in info else None
 
         return result
+
+    def copy_to(self, base_path: Union[str, Path], new_id: Optional[str] = None):
+        """Copies the experiment information and the `ResultData` to a new directory.
+        It creates a new `Result` object with the same data and saves it in the new
+        directory. The new `Result` can have a new unique identifier.
+
+        Parameters
+        ----------
+        base_path: Union[str, Path]
+            Base path where the new experiment will be stored. Must be different from the
+            current base path.
+        new_id: Optional[str], optional, default=None
+            Unique identifier of the new experiment. If None, the same identifier will be
+            used.
+
+        Returns
+        -------
+        Result
+            A new `Result` object with the same data saved in the new directory.
+
+        Examples
+        --------
+        >>> from remayn.result import Result
+        >>> result = Result.load("./results", "123")
+        >>> new_result = result.copy_to("./new_results")
+        """
+
+        if self.base_path == Path(base_path):
+            raise ValueError(
+                "The new base path must be different from the current base path."
+            )
+
+        if new_id is None:
+            new_id = self.id
+
+        new_result = Result(base_path=base_path, id=new_id, config=self.config)
+
+        if self.get_data_path().exists():
+            # If the source result is already saved, copy the data file
+            new_result.save()
+            shutil.copy(self.get_data_path(), new_result.get_data_path())
+            new_result.data_md5sum_ = self.data_md5sum_
+            new_result.created_at = self.created_at
+            new_result.updated_at = self.updated_at
+        else:
+            # If the source result is not saved, copy the data object and save it
+            new_result.set_data(self.get_data())
+            new_result.save()
+
+        return new_result
 
 
 def make_result(

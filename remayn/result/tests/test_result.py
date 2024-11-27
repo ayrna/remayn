@@ -1,5 +1,6 @@
 import json
 from copy import deepcopy
+from hashlib import md5
 
 import numpy as np
 import pytest
@@ -86,6 +87,25 @@ def complete_result(result_path, result_config):
         best_params={"bs": 32, "estimator_config": {"lr": 1e-3}},
         best_model=TestEstimator(lr=1e-3),
     ).save()
+
+
+@pytest.fixture
+def nonsaved_complete_result(result_path, result_config):
+    return make_result(
+        base_path=result_path,
+        config=result_config,
+        targets=np.array([1, 2, 3]),
+        predictions=np.array([1, 2, 3]),
+        train_targets=np.array([1, 2, 3]),
+        train_predictions=np.array([1, 2, 3]),
+        val_targets=np.array([1, 2, 3]),
+        val_predictions=np.array([1, 2, 3]),
+        time=1.0,
+        train_history=np.array([1, 2, 3]),
+        val_history=np.array([1, 2, 3]),
+        best_params={"bs": 32, "estimator_config": {"lr": 1e-3}},
+        best_model=TestEstimator(lr=1e-3),
+    )
 
 
 def test_init(result, result_path):
@@ -466,3 +486,37 @@ def test_result_compare_config(result, saved_result, complete_result):
 
     with pytest.raises(TypeError):
         complete_result.compare_config(1)
+
+
+def test_result_copy_to(
+    result, saved_result, complete_result, nonsaved_complete_result
+):
+    with pytest.raises(FileNotFoundError):
+        result.copy_to(result.base_path / "_new")
+
+    for r in [saved_result, complete_result, nonsaved_complete_result]:
+        new_base_path = r.base_path / "_new"
+        r2 = r.copy_to(new_base_path)
+        assert isinstance(r2, Result)
+        assert r2.base_path == new_base_path
+        assert r2.id == r.id
+        assert r2.config == r.config
+        assert r.get_data() == r2.get_data()
+
+        with open(r2.get_data_path(), "rb") as f:
+            content = f.read()
+
+        md5sum = md5(content).hexdigest()
+        assert md5sum == r2.data_md5sum_
+
+        if r.data_md5sum_ is not None:
+            assert r.data_md5sum_ == r2.data_md5sum_
+
+        assert new_base_path.exists()
+        assert new_base_path / f"{r2.id}.json" == r2.get_info_path()
+        assert new_base_path / f"{r2.id}.pkl" == r2.get_data_path()
+        assert r2.get_info_path().exists()
+        assert r2.get_data_path().exists()
+
+        with pytest.raises(ValueError):
+            r.copy_to(r.base_path)
