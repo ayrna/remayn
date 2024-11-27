@@ -517,3 +517,6 @@ def test_result_copy_to(
         assert new_base_path / f"{r2.id}.pkl" == r2.get_data_path()
         assert r2.get_info_path().exists()
         assert r2.get_data_path().exists()
+
+        with pytest.raises(ValueError):
+            r.copy_to(r.base_path)
