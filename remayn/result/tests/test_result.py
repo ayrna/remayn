@@ -1,11 +1,13 @@
 import json
 from copy import deepcopy
 from hashlib import md5
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from remayn.result import Result, ResultData, make_result
+from remayn.utils import sanitize_json
 
 
 class TestEstimator:
@@ -492,15 +494,16 @@ def test_result_copy_to(
     result, saved_result, complete_result, nonsaved_complete_result
 ):
     with pytest.raises(FileNotFoundError):
-        result.copy_to(result.base_path / "_new")
+        result.copy_to(f"{result.base_path}_new")
 
     for r in [saved_result, complete_result, nonsaved_complete_result]:
-        new_base_path = r.base_path / "_new"
+        new_base_path = Path(f"{result.base_path}_new")
         r2 = r.copy_to(new_base_path)
         assert isinstance(r2, Result)
         assert r2.base_path == new_base_path
         assert r2.id == r.id
-        assert r2.config == r.config
+        assert sanitize_json(r2.config) == sanitize_json(r.config)
+        assert r2 == r
         assert r.get_data() == r2.get_data()
 
         with open(r2.get_data_path(), "rb") as f:
@@ -520,3 +523,10 @@ def test_result_copy_to(
 
         with pytest.raises(ValueError):
             r.copy_to(r.base_path)
+
+        # Try to load the result from the new path
+        loaded_result = Result.load(new_base_path, r.id)
+        assert loaded_result.base_path == new_base_path
+        assert sanitize_json(loaded_result.config) == sanitize_json(r.config)
+        data = loaded_result.get_data()
+        assert data == r.get_data()

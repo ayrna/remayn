@@ -471,7 +471,9 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         >>> new_result = result.copy_to("./new_results")
         """
 
-        if self.base_path == Path(base_path):
+        base_path = Path(base_path)
+
+        if self.base_path == base_path:
             raise ValueError(
                 "The new base path must be different from the current base path."
             )
@@ -479,17 +481,23 @@ Best params: {self.data_.best_params if self.data_.best_params is not None else 
         if new_id is None:
             new_id = self.id
 
-        new_result = Result(base_path=base_path, id=new_id, config=self.config)
+        base_path.mkdir(parents=True, exist_ok=True)
 
-        if self.get_data_path().exists():
-            # If the source result is already saved, copy the data file
-            new_result.save()
-            shutil.copy(self.get_data_path(), new_result.get_data_path())
-            new_result.data_md5sum_ = self.data_md5sum_
-            new_result.created_at = self.created_at
-            new_result.updated_at = self.updated_at
+        source_info_path = self.get_info_path()
+        source_data_path = self.get_data_path()
+
+        dest_info_path = base_path / f"{new_id}.json"
+        dest_data_path = base_path / f"{new_id}.pkl"
+
+        if source_info_path.exists():
+            shutil.copy(source_info_path, dest_info_path)
+
+            if source_data_path.exists():
+                shutil.copy(source_data_path, dest_data_path)
+
+            new_result = Result.load(base_path, new_id)
         else:
-            # If the source result is not saved, copy the data object and save it
+            new_result = Result(base_path, new_id, self.config)
             new_result.set_data(self.get_data())
             new_result.save()
 
