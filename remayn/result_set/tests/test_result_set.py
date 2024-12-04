@@ -50,8 +50,8 @@ def generate_random_result(base_path):
             "estimator_config": {
                 "hidden_layers": np.random.randint(1, 10, 10).tolist(),
                 "hidden_units": np.random.randint(1, 1000, 10).tolist(),
-                "activation": np.random.choice(["relu", "tanh", "sigmoid"]),
-                "optimizer": np.random.choice(["adam", "sgd", "rmsprop"]),
+                "activation": str(np.random.choice(["relu", "tanh", "sigmoid"])),
+                "optimizer": str(np.random.choice(["adam", "sgd", "rmsprop"])),
                 "loss": ["categorical_crossentropy", "mean_squared_error"],
                 "loss_params": [{"reduction": "sum"}, {"reduction": "mean"}],
                 "metrics": ["accuracy"],
