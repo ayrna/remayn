@@ -267,6 +267,12 @@ def test_result_set_filter(result_set):
     def _filter_fn_error2(result):
         return result.config["nonexistent"] == "test"
 
+    for i, result in enumerate(result_set):
+        if i == 0:
+            result.config["estimator_config"]["optimizer"] = "adam"
+        elif i == 1:
+            result.config["estimator_config"]["optimizer"] = "sgd"
+
     filtered_result_set = result_set.filter(_filter_fn)
     assert len(filtered_result_set) <= len(result_set)
     assert all(
