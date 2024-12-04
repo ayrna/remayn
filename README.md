@@ -5,8 +5,8 @@ It includes the required functionalities to save the complete results of an expe
 
 | Overview  |                                                                                                                                          |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------|
-| **CI/CD** | [![!codecov](https://img.shields.io/codecov/c/github/ayrna/remayn?label=codecov&logo=codecov)](https://codecov.io/gh/ayrna/remayn) [![!docs](https://readthedocs.org/projects/remayn/badge/?version=latest&style=flat)](https://remayn.readthedocs.io/en/latest/)  |
-| **Code**  | [![!python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)](https://www.python.org/) [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Linter: Ruff](https://img.shields.io/badge/Linter-Ruff-brightgreen?style=flat-square)](https://github.com/charliermarsh/ruff)                     |
+| **CI/CD** | [![!python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/) [![Run Tests](https://github.com/ayrna/remayn/actions/workflows/run_tests.yml/badge.svg)](https://github.com/ayrna/remayn/actions/workflows/run_tests.yml) [![!codecov](https://img.shields.io/codecov/c/github/ayrna/remayn?label=codecov&logo=codecov)](https://codecov.io/gh/ayrna/remayn) [![!docs](https://readthedocs.org/projects/remayn/badge/?version=latest&style=flat)](https://remayn.readthedocs.io/en/latest/)  |
+| **Code**  | [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Linter: Ruff](https://img.shields.io/badge/Linter-Ruff-brightgreen?style=flat-square)](https://github.com/charliermarsh/ruff)                     |
 
 ## Getting started
 
