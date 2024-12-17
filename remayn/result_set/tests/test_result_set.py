@@ -50,8 +50,8 @@ def generate_random_result(base_path):
             "estimator_config": {
                 "hidden_layers": np.random.randint(1, 10, 10).tolist(),
                 "hidden_units": np.random.randint(1, 1000, 10).tolist(),
-                "activation": np.random.choice(["relu", "tanh", "sigmoid"]),
-                "optimizer": np.random.choice(["adam", "sgd", "rmsprop"]),
+                "activation": str(np.random.choice(["relu", "tanh", "sigmoid"])),
+                "optimizer": str(np.random.choice(["adam", "sgd", "rmsprop"])),
                 "loss": ["categorical_crossentropy", "mean_squared_error"],
                 "loss_params": [{"reduction": "sum"}, {"reduction": "mean"}],
                 "metrics": ["accuracy"],
@@ -266,6 +266,12 @@ def test_result_set_filter(result_set):
 
     def _filter_fn_error2(result):
         return result.config["nonexistent"] == "test"
+
+    for i, result in enumerate(result_set):
+        if i == 0:
+            result.config["estimator_config"]["optimizer"] = "adam"
+        elif i == 1:
+            result.config["estimator_config"]["optimizer"] = "sgd"
 
     filtered_result_set = result_set.filter(_filter_fn)
     assert len(filtered_result_set) <= len(result_set)
