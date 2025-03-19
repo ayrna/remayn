@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 import pandas as pd
 
@@ -9,8 +9,8 @@ def create_2d_report(
     column_name: str = "column",
     value_name: Optional[str] = None,
     reduction: Literal["mean", "std", "max", "min"] = "mean",
-    compute_means: None | Literal["row", "column", "both"] = "row",
-    compute_ranks: None | Literal["row", "column", "both"] = "row",
+    compute_means: Union[None, Literal["row", "column", "both"]] = "row",
+    compute_ranks: Union[None, Literal["row", "column", "both"]] = "row",
     ascending_ranks: bool = False,
 ):
     """Creates a dataframe with 2 dimensions from a source dataframe. The `row_name` and

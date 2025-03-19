@@ -1,4 +1,4 @@
-from typing import Callable, Literal
+from typing import Callable, Literal, List, Dict
 
 import numpy as np
 import pandas as pd
@@ -8,8 +8,8 @@ def create_latex_2d_2values_report(
     df_l1: pd.DataFrame,
     df_l2: pd.DataFrame,
     float_formatter: Callable[[float], str] = lambda x: f"{x:.3f}",
-    highlight: dict[str, Literal[None, "max", "min"]] = {},
-    highlight_excluded: list[str] = [],
+    highlight: Dict[str, Literal[None, "max", "min"]] = {},
+    highlight_excluded: List[str] = [],
     highlight_axis: int = 0,
 ):
     """Creates a LaTeX table from two dataframes with the same shape. The first
