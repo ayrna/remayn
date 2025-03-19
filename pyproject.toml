@@ -30,6 +30,7 @@ Documentation = "https://remayn.readthedocs.io/en/latest/"
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "pre-commit"]
 docs = ["sphinx", "sphinxcontrib-bibtex", "sphinx-rtd-theme"]
+tutorials = ["scikit-learn"]
 
 [tool.setuptools.packages.find]
 include = ["remayn", "remayn.*"]
