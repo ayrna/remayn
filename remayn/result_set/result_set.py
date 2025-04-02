@@ -446,6 +446,85 @@ class ResultSet:
     def __contains__(self, result: Union[str, dict, Result]) -> bool:
         return self.contains(result)
 
+    def __add__(self, other: "ResultSet") -> "ResultSet":
+        """Adds two `ResultSet` objects together. The resulting `ResultSet` will
+        contain all the results from both `ResultSet` objects.
+
+        Parameters
+        ----------
+        other : ResultSet
+            The `ResultSet` to add.
+
+        Returns
+        -------
+        result_set : ResultSet
+            The resulting `ResultSet` with all the results from both `ResultSet`
+            objects.
+        """
+
+        if not isinstance(other, ResultSet):
+            raise TypeError(
+                f"Expected ResultSet, got {type(other).__name__}",
+            )
+
+        return ResultSet(list(self.results_.values()) + list(other.results_.values()))
+
+    def __sub__(self, other: "ResultSet") -> "ResultSet":
+        """Subtracts two `ResultSet` objects. The resulting `ResultSet` will
+        contain all the results from this `ResultSet` that are not in the other
+        `ResultSet`.
+
+        Parameters
+        ----------
+        other : ResultSet
+            The `ResultSet` to subtract.
+
+        Returns
+        -------
+        result_set : ResultSet
+            The resulting `ResultSet` with all the results from this `ResultSet`
+            that are not in the other `ResultSet`.
+        """
+
+        if not isinstance(other, ResultSet):
+            raise TypeError(
+                f"Expected ResultSet, got {type(other).__name__}",
+            )
+
+        return ResultSet(
+            [result for result in self.results_.values() if result not in other]
+        )
+
+    def __eq__(
+        self,
+        other: "ResultSet",
+    ) -> bool:
+        """Checks if two `ResultSet` objects are equal. Two `ResultSet` objects are
+        equal if they contain the same results.
+
+        Parameters
+        ----------
+        other : ResultSet
+            The `ResultSet` to compare.
+
+        Returns
+        -------
+        result_set : bool
+            Whether the two `ResultSet` objects are equal.
+        """
+
+        if not isinstance(other, ResultSet):
+            return False
+
+        if len(self.results_) != len(other.results_):
+            return False
+
+        for result in self:
+            if result not in other:
+                return False
+
+        return True
+
 
 class ResultFolder(ResultSet):
     """Stores a set of set of `Result` objects loaded from a directory.
