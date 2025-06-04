@@ -112,6 +112,10 @@ def create_excel_columns_report(
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
+    df = df.copy()
+    for column in pivot_columns:
+        df[column] = df[column].astype(str)
+
     def _create_pivot_df(column):
         pivot_df = (
             df.pivot(
