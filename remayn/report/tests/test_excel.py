@@ -45,6 +45,7 @@ def df():
                 "X",
                 "Y",
             ],
+            "pipeline": [1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2],
             "seed": [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3],
             "accuracy": [
                 0.1,
@@ -92,7 +93,7 @@ def excel_path(tmp_path):
 
 
 def test_create_excel_summary_report(df, excel_path):
-    group_columns = ["estimator", "dataset"]
+    group_columns = ["estimator", "dataset", "pipeline"]
     ret_v = create_excel_summary_report(df, excel_path, group_columns)
 
     assert excel_path.exists()
@@ -119,7 +120,7 @@ def test_create_excel_summary_report(df, excel_path):
 
 
 def test_create_excel_summary_report_custom_sheet_names(df, excel_path):
-    group_columns = ["estimator", "dataset"]
+    group_columns = ["estimator", "dataset", "pipeline"]
     individual_sheet_name = "Original"
     average_sheet_name = "Mean"
     std_sheet_name = "Standard Deviation"
@@ -156,7 +157,7 @@ def test_create_excel_summary_report_custom_sheet_names(df, excel_path):
 
 
 def test_create_excel_summary_report_shared_writer(df, excel_path):
-    group_columns = ["estimator", "dataset"]
+    group_columns = ["estimator", "dataset", "pipeline"]
     with pd.ExcelWriter(excel_path) as writer:
         ret_v = create_excel_summary_report(
             df, excel_path, group_columns, excel_writer=writer
@@ -217,7 +218,7 @@ def test_create_excel_summary_report_shared_writer(df, excel_path):
 def test_create_excel_columns_report(df, excel_path):
     metric_columns = ["accuracy", "precision"]
     pivot_index = "seed"
-    pivot_columns = ["estimator", "dataset"]
+    pivot_columns = ["estimator", "dataset", "pipeline"]
     ret_v = create_excel_columns_report(
         df, excel_path, metric_columns, pivot_index, pivot_columns
     )
@@ -245,7 +246,7 @@ def test_create_excel_columns_report(df, excel_path):
 def test_create_excel_columns_report_shared_writer(df, excel_path):
     metric_columns = ["accuracy", "precision"]
     pivot_index = "seed"
-    pivot_columns = ["estimator", "dataset"]
+    pivot_columns = ["estimator", "dataset", "pipeline"]
     with pd.ExcelWriter(excel_path) as writer:
         ret_v = create_excel_columns_report(
             df,
