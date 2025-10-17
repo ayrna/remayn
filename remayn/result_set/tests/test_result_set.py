@@ -1,3 +1,4 @@
+from copy import deepcopy
 import importlib
 import warnings
 
@@ -82,6 +83,11 @@ def result_path(tmp_path):
 
 
 @pytest.fixture
+def another_result_path(tmp_path):
+    return tmp_path / "another_results"
+
+
+@pytest.fixture
 def empty_result_set():
     return ResultSet([])
 
@@ -94,6 +100,11 @@ def result_list(result_path):
 @pytest.fixture
 def result_set(result_list):
     return ResultSet(result_list)
+
+
+@pytest.fixture
+def another_result_set(another_result_path):
+    return ResultSet([generate_random_result(another_result_path) for _ in range(15)])
 
 
 @pytest.fixture
@@ -672,3 +683,129 @@ def test_result_set_create_dataframe_custom_column_prefix(result_set, dataframe_
     assert isinstance(df_loaded, pd.DataFrame)
     assert len(df_loaded) == len(result_set)
     assert all(df_loaded.columns == df.columns)
+
+
+def test_result_set_eq(result_set, another_result_set):
+    # Check for the same result set
+    assert result_set == result_set
+    assert another_result_set == another_result_set
+
+    # Check for different result sets
+    assert result_set != another_result_set
+    assert another_result_set != result_set
+
+    # Check for different types
+    assert result_set is not None
+    assert another_result_set is not None
+    assert result_set != 1
+    assert another_result_set != 1
+    assert result_set != ""
+    assert another_result_set != ""
+    assert result_set != []
+    assert another_result_set != []
+
+    result_set_copy = deepcopy(result_set)
+    another_result_set_copy = deepcopy(another_result_set)
+
+    # Check that copies are equal to the original
+    assert result_set_copy == result_set
+    assert another_result_set_copy == another_result_set
+    assert result_set_copy is not result_set
+    assert another_result_set_copy is not another_result_set
+    assert result_set_copy.results_ == result_set.results_
+    assert another_result_set_copy.results_ == another_result_set.results_
+    assert result_set_copy.results_ is not result_set.results_
+    assert another_result_set_copy.results_ is not another_result_set.results_
+
+    modified_result_set = deepcopy(result_set)
+    list(modified_result_set.results_.values())[0].config["lr"] = 0.1
+    assert modified_result_set != result_set
+
+
+def test_result_set_add(result_set, another_result_set):
+    len1 = len(result_set)
+    len2 = len(another_result_set)
+
+    result_set_copy = deepcopy(result_set)
+    another_result_set_copy = deepcopy(another_result_set)
+
+    assert result_set_copy == result_set
+    assert another_result_set_copy == another_result_set
+
+    combined_rs = result_set + another_result_set
+
+    # Check that all the elements in both result sets are in the combined result set
+    # and that all the elements in the combined result set are in either of the original result sets
+    assert len(combined_rs) == len1 + len2
+    assert all(r in combined_rs for r in result_set)
+    assert all(r in combined_rs for r in another_result_set)
+    assert all(r in result_set or r in another_result_set for r in combined_rs)
+
+    # Check that all the result sets are of the same type
+    assert isinstance(result_set, ResultSet)
+    assert isinstance(another_result_set, ResultSet)
+    assert isinstance(combined_rs, ResultSet)
+
+    # Check for the exact type as the inputs are also result sets and not result folders
+    assert type(result_set) == type(another_result_set)
+    assert type(result_set) == type(combined_rs)
+
+    # Check that the original result sets are unchanged
+    assert len1 == len(result_set)
+    assert len2 == len(another_result_set)
+    assert len(result_set_copy) == len(result_set)
+    assert len(another_result_set_copy) == len(another_result_set)
+    assert result_set_copy == result_set
+    assert another_result_set_copy == another_result_set
+    assert result_set_copy is not result_set
+    assert another_result_set_copy is not another_result_set
+    assert result_set_copy.results_ == result_set.results_
+    assert another_result_set_copy.results_ == another_result_set.results_
+    assert result_set_copy.results_ is not result_set.results_
+    assert another_result_set_copy.results_ is not another_result_set.results_
+
+    # Check that the combined result set is a new object
+    assert combined_rs is not result_set
+    assert combined_rs is not another_result_set
+
+    # Try to add non-result set objects
+    with pytest.raises(TypeError):
+        result_set + None
+    with pytest.raises(TypeError):
+        result_set + 1
+    with pytest.raises(TypeError):
+        result_set + list(result_set.results_.values())[0]
+
+
+def test_result_set_subtract(result_set, another_result_set):
+    len1 = len(result_set)
+    len2 = len(another_result_set)
+
+    result_set_copy = deepcopy(result_set)
+    another_result_set_copy = deepcopy(another_result_set)
+
+    assert result_set_copy == result_set
+    assert another_result_set_copy == another_result_set
+
+    combined_rs = result_set + another_result_set
+
+    # Subtracting a result set with different results should not change the original result set
+    assert (result_set - another_result_set) == result_set
+    assert (another_result_set - result_set) == another_result_set
+
+    assert (combined_rs - result_set) == another_result_set
+    assert (combined_rs - another_result_set) == result_set
+
+    # Make sure that original result sets did not change
+    assert result_set == result_set_copy
+    assert another_result_set == another_result_set_copy
+    assert len1 == len(result_set)
+    assert len2 == len(another_result_set)
+
+    # Try to subtract non-result set objects
+    with pytest.raises(TypeError):
+        result_set - None
+    with pytest.raises(TypeError):
+        result_set - 1
+    with pytest.raises(TypeError):
+        result_set - list(result_set.results_.values())[0]
